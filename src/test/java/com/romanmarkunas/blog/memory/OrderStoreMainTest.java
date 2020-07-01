@@ -1,5 +1,7 @@
 package com.romanmarkunas.blog.memory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.romanmarkunas.blog.memory.example1.OrderGenerator;
 import com.romanmarkunas.blog.memory.example1.OrderStoreMain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +17,7 @@ import static java.util.Arrays.asList;
 
 class OrderStoreMainTest {
 
+    private final ObjectMapper mapper = new ObjectMapper();
     private Process process;
 
 
@@ -29,11 +32,15 @@ class OrderStoreMainTest {
 
     @Test
     void stuffOtherJvmUntilItDies() throws IOException {
-        process = runInSeparateJvm(OrderStoreMain.class);
+        OrderGenerator generator = new OrderGenerator();
+        process = runInSeparateJvm(OrderStoreMain.class, "-Xmx64m");
+
         try (BufferedWriter writer = bufferedWriterTo(process)) {
-            writer.write("echo this\n");
-            writer.write("exit\n");
-            writer.flush();
+            while (process.isAlive()) {
+                String order = mapper.writeValueAsString(generator.next());
+                writer.write(order + "\n");
+                writer.flush();
+            }
         }
     }
 
@@ -41,13 +48,9 @@ class OrderStoreMainTest {
     private static Process runInSeparateJvm(Class<?> clazz, String... jvmArgs)
     {
         List<String> command = new ArrayList<>();
-        command.addAll(asList(
-                System.getProperty("java.home") + File.separator + "bin" + File.separator + "java",
-                "-cp",
-                System.getProperty("java.class.path"),
-                clazz.getName()
-        ));
+        command.add(System.getProperty("java.home") + File.separator + "bin" + File.separator + "java");
         command.addAll(asList(jvmArgs));
+        command.addAll(asList("-cp", System.getProperty("java.class.path"), clazz.getName()));
 
         ProcessBuilder builder = new ProcessBuilder(command);
 
