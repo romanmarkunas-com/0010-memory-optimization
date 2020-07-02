@@ -6,3 +6,6 @@
 # Gradle
 **/.gradle/
 **/build/
+
+# Unpacked addresses
+src/main/resources/alaska-addresses/

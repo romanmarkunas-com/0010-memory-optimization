@@ -1,12 +1,17 @@
 package com.romanmarkunas.blog.memory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.romanmarkunas.blog.memory.address.Address;
+import com.romanmarkunas.blog.memory.address.AlaskaAddressArchive;
 import com.romanmarkunas.blog.memory.example1.OrderGenerator;
 import com.romanmarkunas.blog.memory.example1.OrderStoreMain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -18,6 +23,8 @@ import static java.util.Arrays.asList;
 class OrderStoreMainTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
+    private final List<Address> addresses = AlaskaAddressArchive.read();
+
     private Process process;
 
 
@@ -31,8 +38,8 @@ class OrderStoreMainTest {
 
 
     @Test
-    void stuffOtherJvmUntilItDies() throws IOException {
-        OrderGenerator generator = new OrderGenerator();
+    void stuffOtherJvmUntilItDiesExample1Initial() throws IOException {
+        OrderGenerator generator = new OrderGenerator(addresses);
         process = runInSeparateJvm(OrderStoreMain.class, "-Xmx64m");
 
         try (BufferedWriter writer = bufferedWriterTo(process)) {
