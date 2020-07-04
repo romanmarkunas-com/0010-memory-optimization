@@ -10,6 +10,7 @@ import java.util.concurrent.locks.LockSupport;
 public class OrderStoreMain {
 
     public static void main(String[] args) throws JsonProcessingException {
+        long startTimeMs = System.currentTimeMillis();
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Order> ordersById = new HashMap<>();
         Map<String, List<Order>> ordersByUser = new HashMap<>();
@@ -29,6 +30,7 @@ public class OrderStoreMain {
         catch (OutOfMemoryError oom) {
             System.out.println("Total orders: " + ordersById.size());
             System.out.println("Total users: " + ordersByUser.size());
+            System.out.println("Total run time: " + (System.currentTimeMillis() - startTimeMs));
             throw oom;
         }
     }

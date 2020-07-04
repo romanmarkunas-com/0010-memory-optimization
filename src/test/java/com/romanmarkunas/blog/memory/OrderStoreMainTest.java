@@ -38,9 +38,33 @@ class OrderStoreMainTest {
 
 
     @Test
-    void stuffOtherJvmUntilItDiesExample1Initial() throws IOException {
+    void example1Initial() throws IOException {
         OrderGenerator generator = new OrderGenerator(addresses);
-        process = runInSeparateJvm(OrderStoreMain.class, "-Xmx64m");
+        process = runInSeparateJvm(
+                OrderStoreMain.class,
+                "-Xmx64m"
+        );
+
+        try (BufferedWriter writer = bufferedWriterTo(process)) {
+            while (process.isAlive()) {
+                String order = mapper.writeValueAsString(generator.next());
+                writer.write(order + "\n");
+                writer.flush();
+            }
+        }
+    }
+
+    @Test
+    void example2ProfilingHeapDump() throws IOException {
+        OrderGenerator generator = new OrderGenerator(addresses);
+        process = runInSeparateJvm(
+                OrderStoreMain.class,
+                "-Xmx64m",
+//                "-Xlog:gc:gc.log",
+                "-Xlog:gc*"
+//                "-XX:+HeapDumpOnOutOfMemoryError",
+//                "-XX:HeapDumpPath=dump.hprof"
+        );
 
         try (BufferedWriter writer = bufferedWriterTo(process)) {
             while (process.isAlive()) {
