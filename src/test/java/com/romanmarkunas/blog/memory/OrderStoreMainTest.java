@@ -5,6 +5,7 @@ import com.romanmarkunas.blog.memory.address.Address;
 import com.romanmarkunas.blog.memory.address.AlaskaAddressArchive;
 import com.romanmarkunas.blog.memory.example1.OrderGenerator;
 import com.romanmarkunas.blog.memory.example1.OrderStoreMain;
+import com.romanmarkunas.blog.memory.example4.TwoGCRootsOrderStoreMain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -44,37 +45,55 @@ class OrderStoreMainTest {
                 OrderStoreMain.class,
                 "-Xmx64m"
         );
-
-        try (BufferedWriter writer = bufferedWriterTo(process)) {
-            while (process.isAlive()) {
-                String order = mapper.writeValueAsString(generator.next());
-                writer.write(order + "\n");
-                writer.flush();
-            }
-        }
+        stuffOtherJvmUntilItDies(process, generator);
     }
 
     @Test
-    void example2ProfilingHeapDump() throws IOException {
+    void example2UnderstandingMemoryProfile() throws IOException {
         OrderGenerator generator = new OrderGenerator(addresses);
         process = runInSeparateJvm(
                 OrderStoreMain.class,
                 "-Xmx64m",
 //                "-Xlog:gc:gc.log",
                 "-Xlog:gc*"
-//                "-XX:+HeapDumpOnOutOfMemoryError",
-//                "-XX:HeapDumpPath=dump.hprof"
         );
+        stuffOtherJvmUntilItDies(process, generator);
+    }
 
+    @Test
+    void example3ProfilingHeap() throws IOException {
+        OrderGenerator generator = new OrderGenerator(addresses);
+        process = runInSeparateJvm(
+                OrderStoreMain.class,
+                "-Xmx64m",
+                "-XX:+HeapDumpOnOutOfMemoryError",
+                "-XX:HeapDumpPath=dump.hprof"
+        );
+        stuffOtherJvmUntilItDies(process, generator);
+    }
+
+    @Test
+    void example4ProfilingHeapWithLeakBetween2GCRoots() throws IOException {
+        OrderGenerator generator = new OrderGenerator(addresses);
+        process = runInSeparateJvm(
+                TwoGCRootsOrderStoreMain.class,
+                "-Xmx64m",
+                "-XX:+HeapDumpOnOutOfMemoryError",
+                "-XX:HeapDumpPath=dump3.hprof"
+        );
+        stuffOtherJvmUntilItDies(process, generator);
+    }
+
+
+    private void stuffOtherJvmUntilItDies(final Process process, OrderGenerator generator) throws IOException {
         try (BufferedWriter writer = bufferedWriterTo(process)) {
-            while (process.isAlive()) {
+            while (this.process.isAlive()) {
                 String order = mapper.writeValueAsString(generator.next());
                 writer.write(order + "\n");
                 writer.flush();
             }
         }
     }
-
 
     private static Process runInSeparateJvm(Class<?> clazz, String... jvmArgs)
     {
@@ -102,6 +121,6 @@ class OrderStoreMainTest {
     }
 
     private void giveTimeToPipeOutputFromChildProcess() {
-        LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1000));
+        LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(5000));
     }
 }
