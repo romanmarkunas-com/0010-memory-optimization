@@ -113,6 +113,23 @@ class OrderStoreMainTest {
         stuffOtherJvmUntilItDies(process, generator);
     }
 
+    @Test
+    void example7TLABInfluenceOnSampleCount() throws IOException {
+        OrderGenerator generator = new OrderGenerator(addresses);
+        process = runInSeparateJvm(
+                OrderStoreMain.class,
+                "-Xmx64m",
+                "-XX:TLABSize=64K",
+                "-XX:-ResizeTLAB",
+                "-XX:+FlightRecorder",
+                "-XX:+UnlockDiagnosticVMOptions",
+                "-XX:+DebugNonSafepoints",
+                "-XX:FlightRecorderOptions:memorysize=100m,stackdepth=32",
+                "-XX:StartFlightRecording:name=SampleRecording,settings=memory.jfc,disk=false,dumponexit=true,filename=dump-small-tlab.jfr,maxage=1h"
+        );
+        stuffOtherJvmUntilItDies(process, generator);
+    }
+
 
     private void stuffOtherJvmUntilItDies(final Process process, OrderGenerator generator) throws IOException {
         try (BufferedWriter writer = bufferedWriterTo(process)) {
