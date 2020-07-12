@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration version="2.0" label="Memory" description="default.jfc + memory profiling" provider="Oracle">
+<configuration version="2.0" label="Memory All" description="default.jfc + memory leak + memory profiling" provider="Oracle">
 
   <event name="jdk.ThreadAllocationStatistics">
     <setting name="enabled">true</setting>
@@ -385,11 +385,11 @@
   </event>
 
   <event name="jdk.PromoteObjectInNewPLAB">
-    <setting name="enabled" control="memory-profiling-enabled-medium">false</setting>
+    <setting name="enabled" control="memory-profiling-enabled-medium">true</setting>
   </event>
 
   <event name="jdk.PromoteObjectOutsidePLAB">
-    <setting name="enabled" control="memory-profiling-enabled-medium">false</setting>
+    <setting name="enabled" control="memory-profiling-enabled-medium">true</setting>
   </event>
 
   <event name="jdk.ConcurrentModeFailure">
@@ -533,12 +533,12 @@
   </event>
 
   <event name="jdk.ObjectAllocationInNewTLAB">
-    <setting name="enabled" control="memory-profiling-enabled-medium">false</setting>
+    <setting name="enabled" control="memory-profiling-enabled-medium">true</setting>
     <setting name="stackTrace">true</setting>
   </event>
 
   <event name="jdk.ObjectAllocationOutsideTLAB">
-    <setting name="enabled" control="memory-profiling-enabled-medium">false</setting>
+    <setting name="enabled" control="memory-profiling-enabled-medium">true</setting>
     <setting name="stackTrace">true</setting>
   </event>
 
@@ -677,7 +677,7 @@
       <test name="gc-level" operator="equal" value="all"/>
     </condition>
 
-    <selection name="memory-profiling" default="off" label="Memory Profiling">
+    <selection name="memory-profiling" default="medium" label="Memory Profiling">
       <option label="Off" name="off">off</option>
       <option label="Object Allocation and Promotion" name="medium">medium</option>
       <option label="All, including Heap Statistics (May cause long full GCs)" name="all">all</option>
