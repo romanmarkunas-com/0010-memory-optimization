@@ -84,6 +84,22 @@ class OrderStoreMainTest {
         stuffOtherJvmUntilItDies(process, generator);
     }
 
+    @Test
+    void example5ProfilingHeapWithJfr() throws IOException {
+        OrderGenerator generator = new OrderGenerator(addresses);
+        process = runInSeparateJvm(
+                OrderStoreMain.class,
+                "-Xmx64m",
+                "-XX:+FlightRecorder",
+                "-XX:+UnlockDiagnosticVMOptions",
+                "-XX:+DebugNonSafepoints", // improves accuracy
+                "-XX:FlightRecorderOptions:memorysize=100m,stackdepth=32",
+                "-XX:StartFlightRecording:name=SampleRecording,settings=memory.jfc,disk=false,dumponexit=true,filename=dump.jfr,maxage=1h",
+                "-Xlog:jfr*"
+        );
+        stuffOtherJvmUntilItDies(process, generator);
+    }
+
 
     private void stuffOtherJvmUntilItDies(final Process process, OrderGenerator generator) throws IOException {
         try (BufferedWriter writer = bufferedWriterTo(process)) {

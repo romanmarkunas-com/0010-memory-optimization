@@ -9,3 +9,7 @@
 
 # Unpacked addresses
 src/main/resources/alaska-addresses/
+
+# dumps
+*.hprof
+*.jfr
