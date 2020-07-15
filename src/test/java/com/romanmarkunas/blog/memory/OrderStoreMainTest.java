@@ -6,6 +6,7 @@ import com.romanmarkunas.blog.memory.address.AlaskaAddressArchive;
 import com.romanmarkunas.blog.memory.example1.OrderGenerator;
 import com.romanmarkunas.blog.memory.example1.OrderStoreMain;
 import com.romanmarkunas.blog.memory.example4.TwoGCRootsOrderStoreMain;
+import com.romanmarkunas.blog.memory.example8.EfficientCollectionsOrderStoreMain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -39,7 +40,7 @@ class OrderStoreMainTest {
 
 
     @Test
-    void example1Initial() throws IOException {
+    void example1Initial() {
         OrderGenerator generator = new OrderGenerator(addresses);
         process = runInSeparateJvm(
                 OrderStoreMain.class,
@@ -49,7 +50,7 @@ class OrderStoreMainTest {
     }
 
     @Test
-    void example2UnderstandingMemoryProfile() throws IOException {
+    void example2UnderstandingMemoryProfile() {
         OrderGenerator generator = new OrderGenerator(addresses);
         process = runInSeparateJvm(
                 OrderStoreMain.class,
@@ -61,7 +62,7 @@ class OrderStoreMainTest {
     }
 
     @Test
-    void example3ProfilingHeap() throws IOException {
+    void example3ProfilingHeap() {
         OrderGenerator generator = new OrderGenerator(addresses);
         process = runInSeparateJvm(
                 OrderStoreMain.class,
@@ -73,7 +74,7 @@ class OrderStoreMainTest {
     }
 
     @Test
-    void example4ProfilingHeapWithLeakBetween2GCRoots() throws IOException {
+    void example4ProfilingHeapWithLeakBetween2GCRoots() {
         OrderGenerator generator = new OrderGenerator(addresses);
         process = runInSeparateJvm(
                 TwoGCRootsOrderStoreMain.class,
@@ -85,7 +86,7 @@ class OrderStoreMainTest {
     }
 
     @Test
-    void example5ProfilingHeapWithJfr() throws IOException {
+    void example5ProfilingHeapWithJfr() {
         OrderGenerator generator = new OrderGenerator(addresses);
         process = runInSeparateJvm(
                 OrderStoreMain.class,
@@ -101,7 +102,7 @@ class OrderStoreMainTest {
     }
 
     @Test
-    void example6ProfilingHeapWithAsyncProfiler() throws IOException {
+    void example6ProfilingHeapWithAsyncProfiler() {
         OrderGenerator generator = new OrderGenerator(addresses);
         process = runInSeparateJvm(
                 OrderStoreMain.class,
@@ -114,7 +115,7 @@ class OrderStoreMainTest {
     }
 
     @Test
-    void example7TLABInfluenceOnSampleCount() throws IOException {
+    void example7TLABInfluenceOnSampleCount() {
         OrderGenerator generator = new OrderGenerator(addresses);
         process = runInSeparateJvm(
                 OrderStoreMain.class,
@@ -130,14 +131,27 @@ class OrderStoreMainTest {
         stuffOtherJvmUntilItDies(process, generator);
     }
 
+    @Test
+    void example8EfficientCollections() {
+        OrderGenerator generator = new OrderGenerator(addresses);
+        process = runInSeparateJvm(
+                EfficientCollectionsOrderStoreMain.class,
+                "-Xmx64m"
+        );
+        stuffOtherJvmUntilItDies(process, generator);
+    }
 
-    private void stuffOtherJvmUntilItDies(final Process process, OrderGenerator generator) throws IOException {
+
+    private void stuffOtherJvmUntilItDies(final Process process, OrderGenerator generator) {
         try (BufferedWriter writer = bufferedWriterTo(process)) {
             while (this.process.isAlive()) {
                 String order = mapper.writeValueAsString(generator.next());
                 writer.write(order + "\n");
                 writer.flush();
             }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
