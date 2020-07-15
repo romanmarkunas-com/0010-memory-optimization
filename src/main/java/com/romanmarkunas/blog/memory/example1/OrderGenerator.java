@@ -42,7 +42,7 @@ public class OrderGenerator {
     }
 
     private String randomUser() {
-        return randomChar() + randomChar() + randomChar() + String.format("%-3s", rn.nextInt(1000));
+        return randomChar() + randomChar() + randomChar() + String.format("%03d", rn.nextInt(1000));
     }
 
     private char randomChar() {
