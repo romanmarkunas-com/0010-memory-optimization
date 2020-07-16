@@ -5,6 +5,7 @@ import com.romanmarkunas.blog.memory.address.Address;
 import com.romanmarkunas.blog.memory.address.AlaskaAddressArchive;
 import com.romanmarkunas.blog.memory.example1.OrderGenerator;
 import com.romanmarkunas.blog.memory.example1.OrderStoreMain;
+import com.romanmarkunas.blog.memory.example10.BreakingUpAddressOrderStoreMain;
 import com.romanmarkunas.blog.memory.example4.TwoGCRootsOrderStoreMain;
 import com.romanmarkunas.blog.memory.example8.EfficientCollectionsOrderStoreMain;
 import com.romanmarkunas.blog.memory.example9.AvoidBoxingOrderStoreMain;
@@ -19,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Supplier;
 
 import static java.lang.ProcessBuilder.Redirect.INHERIT;
 import static java.util.Arrays.asList;
@@ -47,7 +49,7 @@ class OrderStoreMainTest {
                 OrderStoreMain.class,
                 "-Xmx64m"
         );
-        stuffOtherJvmUntilItDies(process, generator);
+        stuffOtherJvmUntilItDies(process, generator::next);
     }
 
     @Test
@@ -59,7 +61,7 @@ class OrderStoreMainTest {
 //                "-Xlog:gc:gc.log",
                 "-Xlog:gc*"
         );
-        stuffOtherJvmUntilItDies(process, generator);
+        stuffOtherJvmUntilItDies(process, generator::next);
     }
 
     @Test
@@ -71,7 +73,7 @@ class OrderStoreMainTest {
                 "-XX:+HeapDumpOnOutOfMemoryError",
                 "-XX:HeapDumpPath=dump.hprof"
         );
-        stuffOtherJvmUntilItDies(process, generator);
+        stuffOtherJvmUntilItDies(process, generator::next);
     }
 
     @Test
@@ -83,7 +85,7 @@ class OrderStoreMainTest {
                 "-XX:+HeapDumpOnOutOfMemoryError",
                 "-XX:HeapDumpPath=dump3.hprof"
         );
-        stuffOtherJvmUntilItDies(process, generator);
+        stuffOtherJvmUntilItDies(process, generator::next);
     }
 
     @Test
@@ -99,7 +101,7 @@ class OrderStoreMainTest {
                 "-XX:StartFlightRecording:name=SampleRecording,settings=memory.jfc,disk=false,dumponexit=true,filename=dump.jfr,maxage=1h",
                 "-Xlog:jfr*"
         );
-        stuffOtherJvmUntilItDies(process, generator);
+        stuffOtherJvmUntilItDies(process, generator::next);
     }
 
     @Test
@@ -112,7 +114,7 @@ class OrderStoreMainTest {
                 "-XX:+DebugNonSafepoints",
                 "-agentpath:lib/async-profiler-1.7.1-linux-x64/build/libasyncProfiler.so=start,event=alloc,file=dump.svg,width=5000"
         );
-        stuffOtherJvmUntilItDies(process, generator);
+        stuffOtherJvmUntilItDies(process, generator::next);
     }
 
     @Test
@@ -129,7 +131,7 @@ class OrderStoreMainTest {
                 "-XX:FlightRecorderOptions:memorysize=100m,stackdepth=32",
                 "-XX:StartFlightRecording:name=SampleRecording,settings=memory.jfc,disk=false,dumponexit=true,filename=dump-small-tlab.jfr,maxage=1h"
         );
-        stuffOtherJvmUntilItDies(process, generator);
+        stuffOtherJvmUntilItDies(process, generator::next);
     }
 
     @Test
@@ -139,7 +141,7 @@ class OrderStoreMainTest {
                 EfficientCollectionsOrderStoreMain.class,
                 "-Xmx64m"
         );
-        stuffOtherJvmUntilItDies(process, generator);
+        stuffOtherJvmUntilItDies(process, generator::next);
     }
 
     @Test
@@ -149,14 +151,28 @@ class OrderStoreMainTest {
                 AvoidBoxingOrderStoreMain.class,
                 "-Xmx64m"
         );
-        stuffOtherJvmUntilItDies(process, generator);
+        stuffOtherJvmUntilItDies(process, generator::next);
+    }
+
+    @Test
+    void example10SplittingAddress() {
+        com.romanmarkunas.blog.memory.example10.OrderGenerator generator
+                = new com.romanmarkunas.blog.memory.example10.OrderGenerator(addresses);
+        process = runInSeparateJvm(
+                BreakingUpAddressOrderStoreMain.class,
+                "-Xmx64m"
+//                "-XX:+UnlockDiagnosticVMOptions",
+//                "-XX:NativeMemoryTracking=summary",
+//                "-XX:+PrintNMTStatistics"
+        );
+        stuffOtherJvmUntilItDies(process, generator::next);
     }
 
 
-    private void stuffOtherJvmUntilItDies(final Process process, OrderGenerator generator) {
+    private void stuffOtherJvmUntilItDies(final Process process, Supplier<Object> generator) {
         try (BufferedWriter writer = bufferedWriterTo(process)) {
             while (this.process.isAlive()) {
-                String order = mapper.writeValueAsString(generator.next());
+                String order = mapper.writeValueAsString(generator.get());
                 writer.write(order + "\n");
                 writer.flush();
             }
