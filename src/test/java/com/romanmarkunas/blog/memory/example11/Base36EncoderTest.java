@@ -33,6 +33,11 @@ class Base36EncoderTest {
     }
 
     @Test
+    void shouldEncodeTwoCharacterWithPadding() {
+        assertThat(Base36Encoder.encode("11")).isEqualTo(new byte[]{0b00000100, 0b00010000}); //0b01000001
+    }
+
+    @Test
     void shouldDecodeSingleCharacterWithPadding() {
         assertThat(Base36Encoder.decode(new byte[]{0b00001000})).isEqualTo("2");
     }
