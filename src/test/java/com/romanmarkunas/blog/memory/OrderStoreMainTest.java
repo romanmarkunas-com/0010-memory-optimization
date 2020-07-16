@@ -7,6 +7,7 @@ import com.romanmarkunas.blog.memory.example1.OrderGenerator;
 import com.romanmarkunas.blog.memory.example1.OrderStoreMain;
 import com.romanmarkunas.blog.memory.example4.TwoGCRootsOrderStoreMain;
 import com.romanmarkunas.blog.memory.example8.EfficientCollectionsOrderStoreMain;
+import com.romanmarkunas.blog.memory.example9.AvoidBoxingOrderStoreMain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -136,6 +137,16 @@ class OrderStoreMainTest {
         OrderGenerator generator = new OrderGenerator(addresses);
         process = runInSeparateJvm(
                 EfficientCollectionsOrderStoreMain.class,
+                "-Xmx64m"
+        );
+        stuffOtherJvmUntilItDies(process, generator);
+    }
+
+    @Test
+    void example9AvoidAutoboxing() {
+        OrderGenerator generator = new OrderGenerator(addresses);
+        process = runInSeparateJvm(
+                AvoidBoxingOrderStoreMain.class,
                 "-Xmx64m"
         );
         stuffOtherJvmUntilItDies(process, generator);
