@@ -34,7 +34,22 @@ class Base36EncoderTest {
 
     @Test
     void shouldEncodeTwoCharacterWithPadding() {
-        assertThat(Base36Encoder.encode("11")).isEqualTo(new byte[]{0b00000100, 0b00010000}); //0b01000001
+        assertThat(Base36Encoder.encode("12")).isEqualTo(new byte[]{0b00000100, 0b00100000});
+    }
+
+    @Test
+    void shouldEncodeThreeCharactersWithPadding() {
+        assertThat(Base36Encoder.encode("123")).isEqualTo(new byte[]{0b00000100, 0b00100000, (byte)0b11000000});
+    }
+
+    @Test
+    void shouldEncodeFourCharactersWithoutPadding() {
+        assertThat(Base36Encoder.encode("1234")).isEqualTo(new byte[]{0b00000100, 0b00100000, (byte)0b11000100});
+    }
+
+    @Test
+    void shouldEncodeFiveCharactersWithPadding() {
+        assertThat(Base36Encoder.encode("12345")).isEqualTo(new byte[]{0b00000100, 0b00100000, (byte)0b11000100, 0b00010100});
     }
 
     @Test

@@ -1,7 +1,6 @@
 package com.romanmarkunas.blog.memory.example11;
 
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 0-9 corresponds to characters 0-9 (ASCII 48-57)
@@ -28,28 +27,17 @@ public class Base36Encoder {
     public static byte[] encode(String str) {
         byte[] bytes = str.getBytes(StandardCharsets.US_ASCII);
         byte[] ret = new byte[calculateOutSize(bytes.length)];
-        int encoded = add(charToEncodedByte(str.charAt(0)), 0);
-        if (str.length() > 1) {
-            encoded = add(charToEncodedByte(str.charAt(1)), encoded);
-            encoded = encoded << 4;
-        }
-        else {
-            encoded = encoded << 2;
-        }
-        if (str.length() > 1) {
-            ret[0] = (byte) ((encoded >> 8) & 0x00FF);
-            ret[1] = (byte) (encoded & 0x00FF);
-        }
-        else {
-            ret[0] = (byte) ((encoded) & 0x00FF);
-        }
-        return ret;
-    }
 
-    private static int add(int encoded, int accumulator) {
-        accumulator = accumulator << 6;
-        accumulator = accumulator | (encoded & 0x3F);
-        return accumulator;
+        int length = str.length();
+        int encoded = 0;
+        int moreToEncode = length;
+        while (moreToEncode > 0) {
+            int encodeThisPass = Math.min(4, moreToEncode);
+            encoded += encodeUpTo4Chars(length - moreToEncode, encodeThisPass, str, encoded, ret);
+            moreToEncode -= encodeThisPass;
+        }
+
+        return ret;
     }
 
     public static String decode(byte[] bytes) {
@@ -63,6 +51,37 @@ public class Base36Encoder {
         int quotient = length * 6 / 8;
         int remainder = length * 6 % 8;
         return remainder == 0 ? quotient : quotient + 1;
+    }
+
+    private static int encodeUpTo4Chars(int inOffset, int inLength, String in, int outOffset, byte[] out) {
+        int encodedByteCount = 0;
+
+        for (int i = 0; i < inLength; i++) {
+            byte encoded = charToEncodedByte(in.charAt(inOffset + i));
+            if (i == 0) {
+                out[outOffset] |= (encoded << 2);
+                encodedByteCount = 1;
+            }
+            else if (i == 1) {
+                out[outOffset] |= ((encoded >> 6) & 0x0003);
+                out[outOffset + 1] |= (encoded << 4);
+                encodedByteCount = 2;
+            }
+            else if (i == 2) {
+                out[outOffset + 1] |= ((encoded >> 4) & 0x0007);
+                out[outOffset + 2] |= (encoded << 6);
+                encodedByteCount = 3;
+            }
+            else if (i == 3) {
+                out[outOffset + 2] |= (encoded & 0x003F);
+                encodedByteCount = 3;
+            }
+            else {
+                throw new IllegalStateException("Should encode up to 4 chars at once!");
+            }
+        }
+
+        return encodedByteCount;
     }
 
     private static byte charToEncodedByte(char c) {
