@@ -1,5 +1,6 @@
 package com.romanmarkunas.blog.memory.example11;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -55,6 +56,28 @@ class Base36EncoderTest {
     @Test
     void shouldDecodeSingleCharacterWithPadding() {
         assertThat(Base36Encoder.decode(new byte[]{0b00001000})).isEqualTo("2");
+    }
+
+    @Test
+    void shouldDecodeTwoCharacterWithPadding() {
+        assertThat(Base36Encoder.decode(new byte[]{0b00000100, 0b00100000})).isEqualTo("12");
+    }
+
+    @Test
+    void shouldDecodeThreeCharactersWithPadding() {
+        assertThat(Base36Encoder.decode(new byte[]{0b00000100, 0b00100000, (byte)0b11000000})).isEqualTo("123");
+    }
+
+    @Test
+    @Disabled
+    void shouldDecodeFourCharactersWithoutPadding() {
+        assertThat(Base36Encoder.decode(new byte[]{0b00000100, 0b00100000, (byte)0b11000100})).isEqualTo("1234");
+    }
+
+    @Test
+    @Disabled
+    void shouldDecodeFiveCharactersWithPadding() {
+        assertThat(Base36Encoder.decode(new byte[]{0b00000100, 0b00100000, (byte)0b11000100, 0b00010100})).isEqualTo("12345");
     }
 
     @ParameterizedTest

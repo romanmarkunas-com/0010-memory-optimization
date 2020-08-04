@@ -5,21 +5,15 @@ import java.nio.charset.StandardCharsets;
 /**
  * 0-9 corresponds to characters 0-9 (ASCII 48-57)
  * 10-35 corresponds to characters A-Z (ASCII 65-90)
+ * 36 is a special padding value
  */
 public class Base36Encoder {
 
     private static final byte[] SUPPORTED_CHARS;
     static {
         SUPPORTED_CHARS = new byte[36];
-//        for (int i = 0; i < 36; i++) {
-//            SUPPORTED_CHARS[i] = (byte) encodedByteToChar(i);
-//        }
-        int digitCount = 10;
-        for (int i = 0; i < digitCount; i++) {
-            SUPPORTED_CHARS[i] = (byte) ('0' + i);
-        }
-        for (int i = 0; i < 26; i++) {
-            SUPPORTED_CHARS[i + digitCount] = (byte) ('A' + i);
+        for (int i = 0; i < 36; i++) {
+            SUPPORTED_CHARS[i] = (byte) encodedByteToChar(i);
         }
     }
 
@@ -41,9 +35,10 @@ public class Base36Encoder {
     }
 
     public static String decode(byte[] bytes) {
-        int single = (bytes[0] >> 2) & 0x3F;
-        char decoded = encodedByteToChar(single);
-        return "" + decoded;
+        StringBuilder out = new StringBuilder();
+        int encodeThisPass = Math.min(3, bytes.length);
+        decodeUpTo3Bytes(0, encodeThisPass, bytes, out);
+        return out.toString();
     }
 
 
@@ -82,6 +77,28 @@ public class Base36Encoder {
         }
 
         return encodedByteCount;
+    }
+
+    private static void decodeUpTo3Bytes(int inOffset, int inLength, byte[] in, StringBuilder out) {
+        for (int i = 0; i < inLength; i++) {
+            if (i == 0) {
+                int single = (in[inOffset] >> 2) & 0x003F;
+                out.append(encodedByteToChar(single));
+            }
+            else if (i == 1) {
+                int left = (in[inOffset] << 4) & 0x0030;
+                int right = (in[inOffset + 1] >> 4) & 0x000F;
+                out.append(encodedByteToChar(left | right));
+            }
+            else if (i == 2) {
+                int left = (in[inOffset + 1] << 2) & 0x003C;
+                int right = (in[inOffset + 2] >> 6) & 0x0003;
+                out.append(encodedByteToChar(left | right));
+            }
+            else {
+                throw new IllegalStateException("Should encode up to 4 chars at once!");
+            }
+        }
     }
 
     private static byte charToEncodedByte(char c) {
