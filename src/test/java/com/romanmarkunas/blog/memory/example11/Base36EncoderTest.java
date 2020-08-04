@@ -74,7 +74,6 @@ class Base36EncoderTest {
     }
 
     @Test
-    @Disabled
     void shouldDecodeFiveCharactersWithPadding() {
         assertThat(Base36Encoder.decode(new byte[]{0b00000100, 0b00100000, (byte)0b11000100, 0b00010100})).isEqualTo("12345");
     }

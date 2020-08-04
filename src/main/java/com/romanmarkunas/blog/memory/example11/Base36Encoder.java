@@ -37,8 +37,17 @@ public class Base36Encoder {
 
     public static String decode(byte[] bytes) {
         StringBuilder out = new StringBuilder();
-        int encodeThisPass = Math.min(3, bytes.length);
-        decodeUpTo3Bytes(0, encodeThisPass, bytes, out);
+
+        int length = bytes.length;
+        int decoded = 0;
+        int moreToDecode = length;
+        while (moreToDecode > 0) {
+            int decodeThisPass = Math.min(3, moreToDecode);
+            decodeUpTo3Bytes(decoded, decodeThisPass, bytes, out);
+            decoded += decodeThisPass;
+            moreToDecode -= decodeThisPass;
+        }
+
         return out.toString();
     }
 
