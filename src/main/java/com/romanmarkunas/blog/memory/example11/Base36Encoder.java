@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 public class Base36Encoder {
 
     private static final byte[] SUPPORTED_CHARS;
+    private static final byte THIRD_BYTE_PADDING = (byte) 36;
     static {
         SUPPORTED_CHARS = new byte[36];
         for (int i = 0; i < 36; i++) {
@@ -65,7 +66,10 @@ public class Base36Encoder {
             else if (i == 2) {
                 out[outOffset + 1] |= ((encoded >> 4) & 0x0007);
                 out[outOffset + 2] |= (encoded << 6);
-                encodedByteCount = 3;
+                if (inLength == 3) {
+                    out[outOffset + 2] |= (THIRD_BYTE_PADDING & 0x003F);
+                    encodedByteCount = 3;
+                }
             }
             else if (i == 3) {
                 out[outOffset + 2] |= (encoded & 0x003F);
@@ -94,6 +98,11 @@ public class Base36Encoder {
                 int left = (in[inOffset + 1] << 2) & 0x003C;
                 int right = (in[inOffset + 2] >> 6) & 0x0003;
                 out.append(encodedByteToChar(left | right));
+
+                int last6Bytes = in[inOffset + 2] & 0x003F;
+                if (last6Bytes != THIRD_BYTE_PADDING) {
+                    out.append(encodedByteToChar(last6Bytes));
+                }
             }
             else {
                 throw new IllegalStateException("Should encode up to 4 chars at once!");
