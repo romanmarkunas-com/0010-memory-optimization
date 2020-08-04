@@ -1,9 +1,9 @@
 package com.romanmarkunas.blog.memory.example11;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -94,7 +94,7 @@ class Base36EncoderTest {
 
     @ParameterizedTest
     @MethodSource("allSupportedCharsAsString")
-    void shouldDecodeEncodedValue(String s) {
+    void shouldDecodeEncodedSingleChar(String s) {
         byte[] encoded = Base36Encoder.encode(s);
         String decoded = Base36Encoder.decode(encoded);
         assertThat(decoded).isEqualTo(s);
@@ -102,12 +102,26 @@ class Base36EncoderTest {
 
     @ParameterizedTest
     @MethodSource("allSupportedByteValues")
-    void shouldEncodeDecodedValue(byte b) {
+    void shouldEncodeDecodedSingleChar(byte b) {
         byte shiftedByteValue = (byte) (b << 2);
         String decoded = Base36Encoder.decode(new byte[]{shiftedByteValue});
         byte[] encoded = Base36Encoder.encode(decoded);
         assertThat(encoded).hasSize(1);
         assertThat(encoded[0]).isEqualTo(shiftedByteValue);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "QU",
+            "ABC",
+            "ZZZ",
+            "ZZZZ",
+            "QUICKBROWNFOX123456789"
+    })
+    void shouldDecodeEncodedString(String s) {
+        byte[] encoded = Base36Encoder.encode(s);
+        String decoded = Base36Encoder.decode(encoded);
+        assertThat(decoded).isEqualTo(s);
     }
 
     static Stream<String> allSupportedCharsAsString() {

@@ -64,17 +64,17 @@ public class Base36Encoder {
         for (int i = 0; i < inLength; i++) {
             byte encoded = charToEncodedByte(in.charAt(inOffset + i));
             if (i == 0) {
-                out[outOffset] |= (encoded << 2);
+                out[outOffset] |= ((encoded << 2) & 0x00FC);
                 encodedByteCount = 1;
             }
             else if (i == 1) {
-                out[outOffset] |= ((encoded >> 6) & 0x0003);
-                out[outOffset + 1] |= (encoded << 4);
+                out[outOffset] |= ((encoded >> 4) & 0x0003);
+                out[outOffset + 1] |= ((encoded << 4) & 0x00F0);
                 encodedByteCount = 2;
             }
             else if (i == 2) {
-                out[outOffset + 1] |= ((encoded >> 4) & 0x0007);
-                out[outOffset + 2] |= (encoded << 6);
+                out[outOffset + 1] |= ((encoded >> 2) & 0x000F);
+                out[outOffset + 2] |= ((encoded << 6) & 0x00C0);
                 if (inLength == 3) {
                     out[outOffset + 2] |= (THIRD_BYTE_PADDING & 0x003F);
                     encodedByteCount = 3;
