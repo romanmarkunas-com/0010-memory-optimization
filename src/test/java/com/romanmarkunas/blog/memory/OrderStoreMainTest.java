@@ -7,6 +7,7 @@ import com.romanmarkunas.blog.memory.example1.OrderGenerator;
 import com.romanmarkunas.blog.memory.example1.OrderStoreMain;
 import com.romanmarkunas.blog.memory.example10.BreakingUpAddressOrderStoreMain;
 import com.romanmarkunas.blog.memory.example11.CustomStringEncodingOrderStoreMain;
+import com.romanmarkunas.blog.memory.example12.LessReferencesOrderStoreMain;
 import com.romanmarkunas.blog.memory.example4.TwoGCRootsOrderStoreMain;
 import com.romanmarkunas.blog.memory.example8.EfficientCollectionsOrderStoreMain;
 import com.romanmarkunas.blog.memory.example9.AvoidBoxingOrderStoreMain;
@@ -175,6 +176,17 @@ class OrderStoreMainTest {
                 = new com.romanmarkunas.blog.memory.example11.OrderGenerator(addresses);
         process = runInSeparateJvm(
                 CustomStringEncodingOrderStoreMain.class,
+                "-Xmx64m"
+        );
+        stuffOtherJvmUntilItDies(process, generator::next);
+    }
+
+    @Test
+    void example12LessReferences() {
+        com.romanmarkunas.blog.memory.example11.OrderGenerator generator
+                = new com.romanmarkunas.blog.memory.example11.OrderGenerator(addresses);
+        process = runInSeparateJvm(
+                LessReferencesOrderStoreMain.class,
                 "-Xmx64m"
         );
         stuffOtherJvmUntilItDies(process, generator::next);
