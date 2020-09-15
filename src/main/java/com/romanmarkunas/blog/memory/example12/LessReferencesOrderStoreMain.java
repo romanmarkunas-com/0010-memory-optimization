@@ -19,7 +19,10 @@ public class LessReferencesOrderStoreMain {
     public static void main(String[] args) throws JsonProcessingException {
         long startTimeMs = System.currentTimeMillis();
         ObjectMapper mapper = new ObjectMapper();
-        mapper.setInjectableValues(new InjectableValues.Std().addValue(SlowByteArrayPool.class, new SlowByteArrayPool()));
+        mapper.setInjectableValues(new InjectableValues.Std().addValue(
+                ByteArrayPool.class,
+                new TreeBasedByteArrayPool()
+        ));
         Long2ObjectHashMap<Order> ordersById = new Long2ObjectHashMap<>();
         Map<Base36String, List<Order>> ordersByUser = new Object2ObjectHashMap<>();
 
@@ -30,7 +33,8 @@ public class LessReferencesOrderStoreMain {
                     Order order = mapper.readValue(received, Order.class);
                     ordersById.put(order.getId(), order);
                     ordersByUser.computeIfAbsent(new Base36String(order.getUser()), key -> new ArrayList<>(1)).add(order);
-                } else {
+                }
+                else {
                     LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(5));
                 }
             }
