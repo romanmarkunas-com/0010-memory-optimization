@@ -11,6 +11,7 @@ public class PooledByteArrayMap {
     private long[] keys;
     private byte[][] values;
     private int[] usages;
+    private int size = 0;
 
 
     public PooledByteArrayMap(int initialCapacity) {
@@ -21,7 +22,7 @@ public class PooledByteArrayMap {
     public long put(byte[] value) {
         int valueHashCode = Arrays.hashCode(value) & 0x7fffffff;
 
-        ensureCapacity(keys.length + 1);
+        ensureCapacity(size + 1);
 
         int index = findSlotFor(value, valueHashCode);
 
@@ -37,6 +38,7 @@ public class PooledByteArrayMap {
             keys[index] = key;
             values[index] = value;
             usages[index] = 1;
+            size++;
             return key;
         }
     }
@@ -54,12 +56,13 @@ public class PooledByteArrayMap {
             if (usages[index] <= 0) {
                 keys[index] = FREE_OR_REMOVED;
                 values[index] = REMOVED;
+                size--;
             }
         }
     }
 
     public int size() {
-        return keys.length;
+        return size;
     }
 
 
@@ -92,7 +95,7 @@ public class PooledByteArrayMap {
         createInternalArrays(newCapacity);
 
         for (int i = 0; i < oldKeys.length; i++) {
-            long oldKey = keys[i];
+            long oldKey = oldKeys[i];
             if (oldKey != FREE_OR_REMOVED) {
                 byte[] oldValue = oldValues[i];
 
@@ -119,7 +122,7 @@ public class PooledByteArrayMap {
                 return i;
             }
             if (isFull(i) && Arrays.equals(value, values[i])) {
-                return -i - 1; // encode existing value as negative number
+                return -i - 1; // encode existing value as negative number, -1 is necessary because 0 is valid index
             }
             if (firstRemoved == -1 && isRemoved(i)) {
                 firstRemoved = i;

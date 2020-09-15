@@ -1,6 +1,5 @@
 package com.romanmarkunas.blog.memory.example12;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
