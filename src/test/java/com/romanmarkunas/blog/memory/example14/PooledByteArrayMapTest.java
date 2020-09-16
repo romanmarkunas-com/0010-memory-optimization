@@ -4,7 +4,6 @@ import com.sun.management.ThreadMXBean;
 import org.junit.jupiter.api.Test;
 
 import java.lang.management.ManagementFactory;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -150,11 +149,12 @@ class PooledByteArrayMapTest {
 
     @Test
     void throwIfSameObjectIsPooledTooManyTimes() {
-        for (int i = 0; i < Short.MAX_VALUE; i++) {
-            poolUnderTest.put(new byte[] {10});
+        byte[] value = {10};
+        for (int i = 0; i < Integer.MAX_VALUE; i++) {
+            poolUnderTest.put(value);
         }
 
-        assertThatThrownBy(() -> poolUnderTest.put(new byte[] {10})).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> poolUnderTest.put(value)).isInstanceOf(IllegalStateException.class);
     }
 
     @Test

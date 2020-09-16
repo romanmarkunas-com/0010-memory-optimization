@@ -7,11 +7,13 @@ public class PooledByteArrayMap {
     private static final byte[] REMOVED = new byte[0];
     private static final long FREE_OR_REMOVED = 0;
     private static final int CAPACITY_INCREMENT = 16384;
+    private static final int UNIQUIFIER_MASK = 0xFFFF0000;
+    private static final int HASHCODE_MASK = 0x00007FFF;
 
     private int keyUniquefier = 1;
     private long[] keys;
     private byte[][] values;
-    private short[] usages;
+    private int[] usages;
     private int size = 0;
 
 
@@ -21,7 +23,7 @@ public class PooledByteArrayMap {
 
 
     public long put(byte[] value) {
-        int valueHashCode = Arrays.hashCode(value) & 0x7fffffff;
+        int valueHashCode = Arrays.hashCode(value) & HASHCODE_MASK;
 
         ensureCapacity(size + 1);
 
@@ -29,15 +31,15 @@ public class PooledByteArrayMap {
 
         if (index < 0) {
             int indexOfExistingItem = -(index + 1);
-            if (usages[indexOfExistingItem] >= Short.MAX_VALUE) {
+            if (usages[indexOfExistingItem] >= Integer.MAX_VALUE) {
                 throw new IllegalStateException("Too many reuses of same byte[] - " + Arrays.toString(value));
             }
             usages[indexOfExistingItem]++;
             return keys[indexOfExistingItem];
         }
         else {
-            long uniquePrefix = (getAndIncrementUniquifier() << Integer.SIZE) & 0xFFFF0000;
-            long key = uniquePrefix + valueHashCode;
+            long uniquePrefix = (getAndIncrementUniquifier() << Integer.SIZE) & UNIQUIFIER_MASK;
+            long key = uniquePrefix | valueHashCode;
 
             keys[index] = key;
             values[index] = value;
@@ -73,10 +75,10 @@ public class PooledByteArrayMap {
     private void createInternalArrays(int capacity) {
         keys = new long[capacity];
         values = new byte[capacity][];
-        usages = new short[capacity];
+        usages = new int[capacity];
         Arrays.fill(keys, FREE_OR_REMOVED);
         Arrays.fill(values, null);
-        Arrays.fill(usages, (short) 0);
+        Arrays.fill(usages, 0);
     }
 
     private void ensureCapacity(int desiredCapacity) {
@@ -93,7 +95,7 @@ public class PooledByteArrayMap {
 
         long[] oldKeys = keys;
         byte[][] oldValues = values;
-        short[] oldUsages = usages;
+        int[] oldUsages = usages;
 
         createInternalArrays(newCapacity);
 
@@ -104,7 +106,10 @@ public class PooledByteArrayMap {
 
                 int index = findSlotFor(oldValue, hashCode(oldKey));
                 if (index < 0) {
-                    throw new IllegalStateException("byte[] was mutated, leaving pool in inconsistent state");
+                    throw new IllegalStateException(
+                            "Value mutated, leaving pool in inconsistent state! "
+                          + "Key: " + oldKey + ", value: " + Arrays.toString(oldValue)
+                    );
                 }
 
                 keys[index] = oldKey;
@@ -184,7 +189,7 @@ public class PooledByteArrayMap {
     }
 
     private int hashCode(long key) {
-        return (int) (key & 0x0000FFFF);
+        return (int) (key & HASHCODE_MASK);
     }
 
     private int newCapacity(int currentCapacity) {
