@@ -6,6 +6,7 @@ public class PooledByteArrayMap {
 
     private static final byte[] REMOVED = new byte[0];
     private static final long FREE_OR_REMOVED = 0;
+    private static final int CAPACITY_INCREMENT = 16384;
 
     private int keyUniquefier = 1;
     private long[] keys;
@@ -88,8 +89,7 @@ public class PooledByteArrayMap {
             return;
         }
 
-        // + resizing algorithm that is more gentle to bigger sizes, e.g increase by 1 MB after specific size
-        int newCapacity = currentCapacity > ((Integer.MAX_VALUE) / 2) ? Integer.MAX_VALUE : currentCapacity * 2;
+        int newCapacity = newCapacity(currentCapacity);
 
         long[] oldKeys = keys;
         byte[][] oldValues = values;
@@ -185,5 +185,24 @@ public class PooledByteArrayMap {
 
     private int hashCode(long key) {
         return (int) (key & 0x0000FFFF);
+    }
+
+    private int newCapacity(int currentCapacity) {
+        // double until chunk (16384 ¬ 64K) worth of references
+        if (currentCapacity < CAPACITY_INCREMENT) {
+            return currentCapacity * 2;
+        }
+        // cap at max value
+        else if (currentCapacity > Integer.MAX_VALUE - CAPACITY_INCREMENT) {
+            return Integer.MAX_VALUE;
+        }
+        // round up until whole increment of a chunk
+        else if (currentCapacity < CAPACITY_INCREMENT * 2) {
+            return CAPACITY_INCREMENT * 2;
+        }
+        // add another chunk on top
+        else {
+            return currentCapacity + CAPACITY_INCREMENT;
+        }
     }
 }
