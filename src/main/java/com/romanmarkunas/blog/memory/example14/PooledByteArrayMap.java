@@ -10,7 +10,7 @@ public class PooledByteArrayMap {
     private int keyUniquefier = 1;
     private long[] keys;
     private byte[][] values;
-    private int[] usages;
+    private short[] usages;
     private int size = 0;
 
 
@@ -28,6 +28,9 @@ public class PooledByteArrayMap {
 
         if (index < 0) {
             int indexOfExistingItem = -(index + 1);
+            if (usages[indexOfExistingItem] >= Short.MAX_VALUE) {
+                throw new IllegalStateException("Too many reuses of same byte[] - " + Arrays.toString(value));
+            }
             usages[indexOfExistingItem]++;
             return keys[indexOfExistingItem];
         }
@@ -69,10 +72,10 @@ public class PooledByteArrayMap {
     private void createInternalArrays(int capacity) {
         keys = new long[capacity];
         values = new byte[capacity][];
-        usages = new int[capacity];
+        usages = new short[capacity];
         Arrays.fill(keys, FREE_OR_REMOVED);
         Arrays.fill(values, null);
-        Arrays.fill(usages, 0);
+        Arrays.fill(usages, (short) 0);
     }
 
     private void ensureCapacity(int desiredCapacity) {
@@ -90,7 +93,7 @@ public class PooledByteArrayMap {
 
         long[] oldKeys = keys;
         byte[][] oldValues = values;
-        int[] oldUsages = usages;
+        short[] oldUsages = usages;
 
         createInternalArrays(newCapacity);
 
@@ -116,8 +119,7 @@ public class PooledByteArrayMap {
         int firstRemoved = -1;
 
         int i = startingIndex;
-        do
-        {
+        do {
             if (isFree(i)) {
                 return i;
             }
@@ -167,8 +169,7 @@ public class PooledByteArrayMap {
         int startingIndex = valueHashCode % values.length;
 
         int i = startingIndex;
-        do
-        {
+        do {
             if (isFree(i)) {
                 return -1;
             }
