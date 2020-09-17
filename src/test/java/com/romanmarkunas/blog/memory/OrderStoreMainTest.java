@@ -212,6 +212,9 @@ class OrderStoreMainTest {
         process = runInSeparateJvm(
                 CustomStringPoolOrderStoreMain.class,
                 "-Xmx64m"
+//                "-Xmx64m",
+//                "-XX:+HeapDumpOnOutOfMemoryError",
+//                "-XX:HeapDumpPath=dump14.hprof"
         );
         stuffOtherJvmUntilItDies(process, generator::next);
     }

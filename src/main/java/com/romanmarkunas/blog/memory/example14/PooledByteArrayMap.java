@@ -6,7 +6,8 @@ public class PooledByteArrayMap {
 
     private static final byte[] REMOVED = new byte[0];
     private static final long FREE_OR_REMOVED = 0;
-    private static final int CAPACITY_INCREMENT = 16384;
+//    private static final int CAPACITY_INCREMENT = 16384;
+    private static final int CAPACITY_INCREMENT = 8192;
     private static final int UNIQUIFIER_MASK = 0xFFFF0000;
     private static final int HASHCODE_MASK = 0x00007FFF;
 
@@ -193,7 +194,7 @@ public class PooledByteArrayMap {
     }
 
     private int newCapacity(int currentCapacity) {
-        // double until chunk (16384 ¬ 64K) worth of references
+        // double until chunk (8192 ¬ 32K) worth of references
         if (currentCapacity < CAPACITY_INCREMENT) {
             return currentCapacity * 2;
         }
