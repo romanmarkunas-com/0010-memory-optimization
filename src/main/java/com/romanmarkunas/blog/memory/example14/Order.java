@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 public final class Order {
 
     private final long id;
-    private final byte[] user;
+    private final long user;
     private final int articleNr;
     private final int count;
     private final int pricePence;
@@ -36,7 +36,7 @@ public final class Order {
             @JacksonInject PooledByteArrayMap byteArrayPool
     ) {
         this.id = id;
-        this.user = user;
+        this.user = byteArrayPool.put(user);
         this.articleNr = articleNr;
         this.count = count;
         this.pricePence = pricePence;
@@ -52,7 +52,7 @@ public final class Order {
         return id;
     }
 
-    public byte[] getUser() {
+    public long getUser() {
         return user;
     }
 
