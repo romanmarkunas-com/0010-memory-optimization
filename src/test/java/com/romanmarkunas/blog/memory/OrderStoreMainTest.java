@@ -14,6 +14,7 @@ import com.romanmarkunas.blog.memory.example4.TwoGCRootsOrderStoreMain;
 import com.romanmarkunas.blog.memory.example8.EfficientCollectionsOrderStoreMain;
 import com.romanmarkunas.blog.memory.example9.AvoidBoxingOrderStoreMain;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedWriter;
@@ -29,6 +30,7 @@ import java.util.function.Supplier;
 import static java.lang.ProcessBuilder.Redirect.INHERIT;
 import static java.util.Arrays.asList;
 
+@Disabled
 class OrderStoreMainTest {
 
     private final ObjectMapper mapper = new ObjectMapper();

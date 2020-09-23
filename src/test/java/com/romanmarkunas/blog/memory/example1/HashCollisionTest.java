@@ -1,11 +1,14 @@
 package com.romanmarkunas.blog.memory.example1;
 
+import org.agrona.collections.IntHashSet;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
 
 import static org.assertj.core.api.Assertions.fail;
 
+@Disabled("it's not really a test, rather a proof of how many collisions can happen; also this need 2G heap to run")
 class HashCollisionTest {
 
     @Test
@@ -54,7 +57,7 @@ class HashCollisionTest {
 
 
     private HashSet<String> generateAllPossibleUsers() {
-        HashSet<Integer> userHashes = new HashSet<>();
+        IntHashSet userHashes = new IntHashSet();
         HashSet<String> users = new HashSet<>();
         int charCount = 26;
 
