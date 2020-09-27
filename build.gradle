@@ -2,44 +2,45 @@ plugins {
     id 'org.checkerframework' version '0.5.10'
 }
 
-apply plugin: 'java-library'
+allprojects {
+    apply plugin: 'java-library'
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        testImplementation 'org.junit.jupiter:junit-jupiter:5.7.0'
+        testImplementation 'org.mockito:mockito-core:3.3.3'
+        testImplementation 'org.assertj:assertj-core:3.16.1'
+    }
+
+    test {
+        useJUnitPlatform()
+        maxParallelForks = Math.max(Runtime.getRuntime().availableProcessors(), 4)
+    }
+}
+
 apply plugin: 'org.checkerframework'
-
-repositories {
-    jcenter()
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
-}
-
-def checkersVersion = "3.6.1"
 
 dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.0'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.11.0'
     implementation 'org.agrona:agrona:1.6.0'
-    implementation "org.checkerframework:checker:${checkersVersion}"
+    implementation project(':immutable-byte-array-checker') // normally annotations and checker would ship separately
 
-    testImplementation "org.junit.jupiter:junit-jupiter:5.7.0"
-    testImplementation 'org.mockito:mockito-core:3.3.3'
-    testImplementation 'org.assertj:assertj-core:3.16.1'
-    testImplementation "org.checkerframework:framework-test:${checkersVersion}"
+    checkerFramework "org.checkerframework:checker:${vCheckersFramework}"
+    checkerFramework project(':immutable-byte-array-checker')
 }
 
 checkerFramework {
 //    excludeTests = true
     checkers = [
-//            'org.checkerframework.checker.units.UnitsChecker',
-//            'org.checkerframework.checker.nullness.NullnessChecker'
+            'com.romanmarkunas.blog.memory.example14.checkers.ImmutableByteArrayChecker'
     ]
-    extraJavacArgs = [
-            '-AskipDefs=com.romanmarkunas.blog.memory.example14.checkers.checkerstestcases' // skip checkers tests
-    ]
-}
-
-test {
-    useJUnitPlatform()
-    maxParallelForks = Math.max(Runtime.getRuntime().availableProcessors(), 4)
 }

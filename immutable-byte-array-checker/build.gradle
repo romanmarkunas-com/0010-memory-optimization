@@ -1,0 +1,4 @@
+dependencies {
+    implementation "org.checkerframework:checker:${vCheckersFramework}"
+    testImplementation "org.checkerframework:framework-test:${vCheckersFramework}"
+}
