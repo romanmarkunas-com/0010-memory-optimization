@@ -30,7 +30,7 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
                 atypeFactory.getAnnotatedType(node.getExpression()),
                 node
         );
-        return super.visitAssignment(node, p);
+        return null;
     }
 
     @Override
@@ -49,7 +49,7 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
                     node
             );
         }
-        return super.visitVariable(node, p);
+        return null;
     }
 
     @Override
@@ -68,7 +68,7 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
                     node
             );
         }
-        return super.visitMethodInvocation(node, p);
+        return null;
     }
 
     @Override
@@ -80,7 +80,7 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
                 suppliedType,
                 node
         );
-        return super.visitReturn(node, p);
+        return null;
     }
 
 

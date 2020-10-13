@@ -62,7 +62,29 @@ public class ReassignmentScenarios {
         return array;
     }
 
-//    public void allowStrengtheningAssignment(byte[] array) {
-//        byte @ImmutableByteArray [] temp = array;
-//    }
+    public void allowStrengtheningAssignment(byte[] array) {
+        byte @ImmutableByteArray [] temp = array;
+    }
+
+    public void allowStrengtheningReassignment(byte[] array) {
+        byte @ImmutableByteArray [] temp;
+        temp = array;
+    }
+
+    public void allowStrengtheningMethodInvocation(byte[] array) {
+        someMethod(array);
+    }
+
+    private void someMethod(byte @ImmutableByteArray [] array) {
+
+    }
+
+    public byte @ImmutableByteArray [] allowStrengtheningReturn(byte[] array) {
+        return array;
+    }
+
+    public void allowAssignmentToUnannotatedVariableIfSuppressed(byte @ImmutableByteArray [] array) {
+        @SuppressWarnings("byte.array.weakening")
+        byte[] temp = array;
+    }
 }
