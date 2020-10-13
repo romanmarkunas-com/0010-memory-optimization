@@ -3,6 +3,8 @@ package com.romanmarkunas.blog.memory.example14.checkers.checkerstestcases.immut
 import com.romanmarkunas.blog.memory.example14.checkers.ImmutableByteArray;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.lang.ref.Reference;
+
 public class AnnotationUsageScenarios {
 
     public void allowAnnotatingByteArrayTypes() {
@@ -91,12 +93,12 @@ public class AnnotationUsageScenarios {
         private int @Nullable @ImmutableByteArray [] intermixedWithOtherAnnotations;
     }
 
-    public static class SomeType<T> {}
-
-    public void failAnnotatingOtherTypesAsGenericParameter() {
+    public void failIfGenericParameterIsAnnotated() {
         // :: error: (byte.array.misuse)
-        SomeType<@ImmutableByteArray byte[]> foo;
+        Reference<@ImmutableByteArray byte[]> misusedAnnotation;
         // :: error: (byte.array.misuse)
-        SomeType<SomeType<SomeType<int @ImmutableByteArray []>>> bar;
+        Reference<byte @ImmutableByteArray []> correctAnnotation;
+        // :: error: (byte.array.misuse)
+        Reference<Reference<Reference<byte @ImmutableByteArray []>>> nestedCorrectAnnotation;
     }
 }

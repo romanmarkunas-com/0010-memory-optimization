@@ -23,6 +23,11 @@ public class MutationScenarios {
         array[0][0] = (byte) 1;
     }
 
+    public void failCompoundMutationOfAnnotatedMethodArgumentUsingNestedHardcodedIndex(byte [] @ImmutableByteArray [] array) {
+        // :: error: (byte.array.mutation)
+        array[0][0] += 1;
+    }
+
     public void allowMutationOfMethodArgumentUsingIteration(byte[] array) {
         for (int i = 0; i < array.length; i++) {
             array[i] = (byte) 1;

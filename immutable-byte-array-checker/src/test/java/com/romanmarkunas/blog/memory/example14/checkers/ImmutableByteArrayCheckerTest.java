@@ -23,8 +23,8 @@ class ImmutableByteArrayCheckerTest {
                 "",
                 asList(
                         sourceFileOf(AnnotationUsageScenarios.class),
-                        sourceFileOf(ReassignmentScenarios.class),
-                        sourceFileOf(MutationScenarios.class)
+                        sourceFileOf(MutationScenarios.class),
+                        sourceFileOf(ReassignmentScenarios.class)
                 ),
                 emptyList(),
                 singletonList(ImmutableByteArrayChecker.class.getName()),

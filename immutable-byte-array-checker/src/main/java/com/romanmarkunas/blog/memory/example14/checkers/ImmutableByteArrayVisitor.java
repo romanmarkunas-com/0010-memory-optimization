@@ -37,18 +37,29 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
     public Void visitVariable(VariableTree node, Void p) {
         recursivelyCheckAnnotatedCorrectly(atypeFactory.getAnnotatedType(node), node);
         if (node.getInitializer() != null) {
-            checkAssignment(node, node.getInitializer(), node);
+            recursivelyCheckAssignment(
+                    atypeFactory.getAnnotatedType(node.getType()),
+                    atypeFactory.getAnnotatedType(node.getInitializer()),
+                    node
+            );
         }
         return super.visitVariable(node, p);
     }
 
-    private void checkAssignment(VariableTree target, ExpressionTree source, VariableTree node) {
-        AnnotatedTypeMirror annotatedSource = atypeFactory.getAnnotatedType(source);
-        AnnotatedTypeMirror annotatedTarget = atypeFactory.getAnnotatedType(target.getType());
-
+    private void recursivelyCheckAssignment(final AnnotatedTypeMirror annotatedTarget, final AnnotatedTypeMirror annotatedSource, Object node) {
         if (!isAnnotatedWithImmutableByteArray(annotatedTarget)
                 && isAnnotatedWithImmutableByteArray(annotatedSource)) {
             checker.report(node, new DiagMessage(Diagnostic.Kind.ERROR, WEAKENING));
+            return;
+        }
+
+        TypeMirror type = annotatedTarget.getUnderlyingType();
+        TypeKind typeKind = type.getKind();
+
+        if (typeKind == TypeKind.ARRAY) {
+            AnnotatedTypeMirror.AnnotatedArrayType annotatedTargetArray = (AnnotatedTypeMirror.AnnotatedArrayType) annotatedTarget;
+            AnnotatedTypeMirror.AnnotatedArrayType annotatedSourceArray = (AnnotatedTypeMirror.AnnotatedArrayType) annotatedSource;
+            recursivelyCheckAssignment(annotatedTargetArray.getComponentType(), annotatedSourceArray.getComponentType(), node);
         }
     }
 
@@ -57,7 +68,7 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
 //        return super.visitMethodInvocation(node, p);
 //    }
 
-    private void recursivelyCheckAnnotatedCorrectly(final AnnotatedTypeMirror annotatedType, VariableTree node) {
+    private void recursivelyCheckAnnotatedCorrectly(final AnnotatedTypeMirror annotatedType, Object node) {
         TypeMirror type = annotatedType.getUnderlyingType();
         TypeKind typeKind = type.getKind();
 
@@ -83,7 +94,28 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
         else if (typeKind == TypeKind.DECLARED) {
             AnnotatedTypeMirror.AnnotatedDeclaredType declaredType = (AnnotatedTypeMirror.AnnotatedDeclaredType) annotatedType;
             for (AnnotatedTypeMirror typeParameter : declaredType.getTypeArguments()) {
-                recursivelyCheckAnnotatedCorrectly(typeParameter, node);
+                recursivelyCheckIfAnnotatedAsGenericParameter(typeParameter, node);
+            }
+        }
+    }
+
+    private void recursivelyCheckIfAnnotatedAsGenericParameter(final AnnotatedTypeMirror annotatedType, Object node) {
+        TypeMirror type = annotatedType.getUnderlyingType();
+        TypeKind typeKind = type.getKind();
+
+        if (isAnnotatedWithImmutableByteArray(annotatedType)) {
+            checker.report(node, new DiagMessage(Diagnostic.Kind.ERROR, MISUSE));
+            return;
+        }
+
+        if (typeKind == TypeKind.ARRAY) {
+            AnnotatedTypeMirror.AnnotatedArrayType annotatedArray = (AnnotatedTypeMirror.AnnotatedArrayType) annotatedType;
+            recursivelyCheckIfAnnotatedAsGenericParameter(annotatedArray.getComponentType(), node);
+        }
+        else if (typeKind == TypeKind.DECLARED) {
+            AnnotatedTypeMirror.AnnotatedDeclaredType declaredType = (AnnotatedTypeMirror.AnnotatedDeclaredType) annotatedType;
+            for (AnnotatedTypeMirror typeParameter : declaredType.getTypeArguments()) {
+                recursivelyCheckIfAnnotatedAsGenericParameter(typeParameter, node);
             }
         }
     }

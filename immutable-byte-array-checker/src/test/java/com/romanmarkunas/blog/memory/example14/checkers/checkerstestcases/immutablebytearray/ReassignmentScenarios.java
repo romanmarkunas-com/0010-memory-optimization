@@ -20,20 +20,27 @@ public class ReassignmentScenarios {
         temp[0] = (byte) 1;
     }
 
+    public void allowAssignmentToNestedAnnotatedVariable(byte [] @ImmutableByteArray [] array) {
+        byte [] @ImmutableByteArray [] temp = array;
+    }
+
+    public void allowAssignmentToNestedUnannotatedVariable(byte[][] array) {
+        byte[][] temp = array;
+        temp[0][0] = (byte) 1;
+    }
+
+    public void failAssignmentToNestedUnannotatedVariable(byte [] @ImmutableByteArray [] array) {
+        // :: error: (byte.array.weakening)
+        byte[][] temp = array;
+        temp[0][0] = (byte) 1;
+    }
+
 //    public void shouldNotAllowMutationUsingArrayFill(byte @ImmutableByteArray [] array) {
 //        // :: error: (assignment.type.incompatible)
 //        Arrays.fill(array, (byte) 1);
 //    }
 
-    // reassignment to var should be forbidden as well
-
-    // nested arrays
-
-//    public void shouldNotAllowAssignmentToUnannotatedVariable(SomeType<byte @ImmutableByteArray []> array) {
-//        // :: error: (assignment.type.incompatible)
-//        SomeType<byte[]> temp = array;
-//        temp.get()[0] = (byte) 1;
-//    }
+    // reassignment to separately declared variable should be forbidden as well
 
 //    public void failAnnotatingOtherTypesAsGenericParameter() {
 //        // :: error: (byte.array.misuse)
