@@ -2,3 +2,19 @@ dependencies {
     implementation "org.checkerframework:checker:${vCheckersFramework}"
     testImplementation "org.checkerframework:framework-test:${vCheckersFramework}"
 }
+
+compileJava {
+    options.compilerArgs += [
+            "--add-exports", "jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
+            "--add-exports", "jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
+            "--add-exports", "jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED"
+    ]
+}
+
+tasks.withType(Test) {
+    jvmArgs += [
+            "--add-opens", "jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
+            "--add-opens", "jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
+            "--add-opens", "jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED"
+    ]
+}

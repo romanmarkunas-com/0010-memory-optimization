@@ -1,6 +1,7 @@
 package com.romanmarkunas.blog.memory.example14.checkers;
 
-import com.romanmarkunas.blog.memory.example14.checkers.checkerstestcases.immutablebytearray.ByteArrayWriteAccesses;
+import com.romanmarkunas.blog.memory.example14.checkers.checkerstestcases.immutablebytearray.AnnotationUsageScenarios;
+import com.romanmarkunas.blog.memory.example14.checkers.checkerstestcases.immutablebytearray.MutationScenarios;
 import org.assertj.core.util.Strings;
 import org.checkerframework.framework.test.*;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,10 @@ class ImmutableByteArrayCheckerTest {
     public void run() {
         TestConfiguration config = TestConfigurationBuilder.buildDefaultConfiguration(
                 "",
-                singletonList(sourceFileOf(ByteArrayWriteAccesses.class)),
+                asList(
+                        sourceFileOf(AnnotationUsageScenarios.class),
+                        sourceFileOf(MutationScenarios.class)
+                ),
                 emptyList(),
                 singletonList(ImmutableByteArrayChecker.class.getName()),
                 singletonList("-Anomsgtext"),
