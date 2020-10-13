@@ -101,4 +101,9 @@ public class AnnotationUsageScenarios {
         // :: error: (byte.array.misuse)
         Reference<Reference<Reference<byte @ImmutableByteArray []>>> nestedCorrectAnnotation;
     }
+
+    // :: error: (byte.array.misuse)
+    public @ImmutableByteArray byte failIfReturnValueIsIncorrectlyAnnotated() {
+        return 1;
+    }
 }
