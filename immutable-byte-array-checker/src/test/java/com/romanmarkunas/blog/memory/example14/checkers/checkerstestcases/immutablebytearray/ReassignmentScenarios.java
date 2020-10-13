@@ -55,4 +55,14 @@ public class ReassignmentScenarios {
             temp = array;
         }
     }
+
+    public byte[] failReturningAnnotatedAsUnannotated(byte @ImmutableByteArray [] array) {
+        byte aByte = array[0];
+        // :: error: (byte.array.weakening)
+        return array;
+    }
+
+//    public void allowStrengtheningAssignment(byte[] array) {
+//        byte @ImmutableByteArray [] temp = array;
+//    }
 }
