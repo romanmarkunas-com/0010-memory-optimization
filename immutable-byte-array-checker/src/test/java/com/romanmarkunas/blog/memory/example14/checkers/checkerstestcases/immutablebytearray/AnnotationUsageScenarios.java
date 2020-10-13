@@ -90,4 +90,13 @@ public class AnnotationUsageScenarios {
         // :: error: (byte.array.misuse)
         private int @Nullable @ImmutableByteArray [] intermixedWithOtherAnnotations;
     }
+
+    public static class SomeType<T> {}
+
+    public void failAnnotatingOtherTypesAsGenericParameter() {
+        // :: error: (byte.array.misuse)
+        SomeType<@ImmutableByteArray byte[]> foo;
+        // :: error: (byte.array.misuse)
+        SomeType<SomeType<SomeType<int @ImmutableByteArray []>>> bar;
+    }
 }

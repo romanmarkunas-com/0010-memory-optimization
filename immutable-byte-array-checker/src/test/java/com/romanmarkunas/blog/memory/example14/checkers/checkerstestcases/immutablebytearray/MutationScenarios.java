@@ -51,4 +51,11 @@ public class MutationScenarios {
 //        // :: error: (assignment.type.incompatible)
 //        Arrays.fill(array, (byte) 1);
 //    }
+//
+//    public void failAnnotatingOtherTypesAsGenericParameter() {
+//        // :: error: (byte.array.misuse)
+//        AnnotationUsageScenarios.SomeType<@ImmutableByteArray byte[]> foo.get()[0] = 1;
+//        // :: error: (byte.array.misuse)
+//        AnnotationUsageScenarios.SomeType<AnnotationUsageScenarios.SomeType<AnnotationUsageScenarios.SomeType<int @ImmutableByteArray []>>> bar;
+//    }
 }

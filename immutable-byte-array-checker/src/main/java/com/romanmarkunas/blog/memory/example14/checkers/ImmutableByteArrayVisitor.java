@@ -64,6 +64,12 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
             AnnotatedTypeMirror.AnnotatedArrayType annotatedArray = (AnnotatedTypeMirror.AnnotatedArrayType) annotatedType;
             recursivelyCheckAnnotatedCorrectly(annotatedArray.getComponentType(), node);
         }
+        else if (typeKind == TypeKind.DECLARED) {
+            AnnotatedTypeMirror.AnnotatedDeclaredType declaredType = (AnnotatedTypeMirror.AnnotatedDeclaredType) annotatedType;
+            for (AnnotatedTypeMirror typeParameter : declaredType.getTypeArguments()) {
+                recursivelyCheckAnnotatedCorrectly(typeParameter, node);
+            }
+        }
     }
 
     private boolean isAnnotatedWithImmutableByteArray(final AnnotatedTypeMirror annotatedType) {
