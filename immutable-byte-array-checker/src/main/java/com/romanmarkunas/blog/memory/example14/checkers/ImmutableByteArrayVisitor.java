@@ -9,6 +9,7 @@ import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
+import java.util.List;
 
 public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArrayAnnotatedTypeFactory> {
 
@@ -46,6 +47,26 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
         return super.visitVariable(node, p);
     }
 
+    @Override
+    public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
+        List<? extends ExpressionTree> suppliedArgs = node.getArguments();
+        List<AnnotatedTypeMirror> targetArgs = atypeFactory
+                .methodFromUse(node)
+                .executableType
+                .getParameterTypes();
+        for (int i = 0; i < suppliedArgs.size(); i++) {
+            ExpressionTree suppliedArg = suppliedArgs.get(i);
+            AnnotatedTypeMirror targetArg = targetArgs.get(i);
+            recursivelyCheckAssignment(
+                    targetArg,
+                    atypeFactory.getAnnotatedType(suppliedArg),
+                    node
+            );
+        }
+        return super.visitMethodInvocation(node, p);
+    }
+
+
     private void recursivelyCheckAssignment(final AnnotatedTypeMirror annotatedTarget, final AnnotatedTypeMirror annotatedSource, Object node) {
         if (!isAnnotatedWithImmutableByteArray(annotatedTarget)
                 && isAnnotatedWithImmutableByteArray(annotatedSource)) {
@@ -62,11 +83,6 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
             recursivelyCheckAssignment(annotatedTargetArray.getComponentType(), annotatedSourceArray.getComponentType(), node);
         }
     }
-
-//    @Override
-//    public Void visitMethodInvocation(MethodInvocationTree node, Void p) {
-//        return super.visitMethodInvocation(node, p);
-//    }
 
     private void recursivelyCheckAnnotatedCorrectly(final AnnotatedTypeMirror annotatedType, Object node) {
         TypeMirror type = annotatedType.getUnderlyingType();
