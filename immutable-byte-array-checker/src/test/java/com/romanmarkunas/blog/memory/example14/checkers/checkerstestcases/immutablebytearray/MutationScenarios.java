@@ -1,9 +1,6 @@
 package com.romanmarkunas.blog.memory.example14.checkers.checkerstestcases.immutablebytearray;
 
 import com.romanmarkunas.blog.memory.example14.checkers.ImmutableByteArray;
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import java.util.Arrays;
 
 public class MutationScenarios {
 
@@ -19,6 +16,11 @@ public class MutationScenarios {
     public void failCompoundMutationOfPrimitiveArrayAsMethodArgumentUsingHardcodedIndex(byte @ImmutableByteArray [] array) {
         // :: error: (byte.array.mutation)
         array[0] += 1;
+    }
+
+    public void failMutationOfAnnotatedMethodArgumentUsingNestedHardcodedIndex(byte [] @ImmutableByteArray [] array) {
+        // :: error: (byte.array.mutation)
+        array[0][0] = (byte) 1;
     }
 
     public void allowMutationOfMethodArgumentUsingIteration(byte[] array) {
@@ -40,22 +42,4 @@ public class MutationScenarios {
             array[i] += 1;
         }
     }
-
-//    public void shouldNotAllowAssignmentToUnannotatedVariable(byte @ImmutableByteArray [] array) {
-//        // :: error: (assignment.type.incompatible)
-//        byte[] temp = array;
-//        temp[0] = (byte) 1;
-//    }
-//
-//    public void shouldNotAllowMutationUsingArrayFill(byte @ImmutableByteArray [] array) {
-//        // :: error: (assignment.type.incompatible)
-//        Arrays.fill(array, (byte) 1);
-//    }
-//
-//    public void failAnnotatingOtherTypesAsGenericParameter() {
-//        // :: error: (byte.array.misuse)
-//        AnnotationUsageScenarios.SomeType<@ImmutableByteArray byte[]> foo.get()[0] = 1;
-//        // :: error: (byte.array.misuse)
-//        AnnotationUsageScenarios.SomeType<AnnotationUsageScenarios.SomeType<AnnotationUsageScenarios.SomeType<int @ImmutableByteArray []>>> bar;
-//    }
 }

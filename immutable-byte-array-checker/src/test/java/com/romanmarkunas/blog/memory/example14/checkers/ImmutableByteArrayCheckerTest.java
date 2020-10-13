@@ -2,6 +2,7 @@ package com.romanmarkunas.blog.memory.example14.checkers;
 
 import com.romanmarkunas.blog.memory.example14.checkers.checkerstestcases.immutablebytearray.AnnotationUsageScenarios;
 import com.romanmarkunas.blog.memory.example14.checkers.checkerstestcases.immutablebytearray.MutationScenarios;
+import com.romanmarkunas.blog.memory.example14.checkers.checkerstestcases.immutablebytearray.ReassignmentScenarios;
 import org.assertj.core.util.Strings;
 import org.checkerframework.framework.test.*;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,7 @@ class ImmutableByteArrayCheckerTest {
                 "",
                 asList(
                         sourceFileOf(AnnotationUsageScenarios.class),
+                        sourceFileOf(ReassignmentScenarios.class),
                         sourceFileOf(MutationScenarios.class)
                 ),
                 emptyList(),
