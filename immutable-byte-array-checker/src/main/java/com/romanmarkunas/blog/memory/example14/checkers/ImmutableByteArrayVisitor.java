@@ -25,6 +25,11 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
     @Override
     public Void visitAssignment(AssignmentTree node, Void p) {
         checkArrayAssignment(node.getVariable(), node);
+        recursivelyCheckAssignment(
+                atypeFactory.getAnnotatedType(node.getVariable()),
+                atypeFactory.getAnnotatedType(node.getExpression()),
+                node
+        );
         return super.visitAssignment(node, p);
     }
 

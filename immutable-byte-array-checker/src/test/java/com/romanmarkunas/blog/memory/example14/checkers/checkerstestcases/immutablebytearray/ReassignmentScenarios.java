@@ -42,5 +42,17 @@ public class ReassignmentScenarios {
         Arrays.fill(array, (byte) 1);
     }
 
-    // reassignment to separately declared variable should be forbidden as well
+    public void failReassignmentToUnannotatedVariable(byte @ImmutableByteArray [] array) {
+        byte[] temp = new byte[10];
+        // :: error: (byte.array.weakening)
+        temp = array;
+    }
+
+    public void failInitialisationToUnannotatedVariable(byte @ImmutableByteArray [] array) {
+        byte[] temp;
+        if (true) {
+            // :: error: (byte.array.weakening)
+            temp = array;
+        }
+    }
 }
