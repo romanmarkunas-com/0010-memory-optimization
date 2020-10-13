@@ -87,4 +87,17 @@ public class ReassignmentScenarios {
         @SuppressWarnings("byte.array.weakening")
         byte[] temp = array;
     }
+
+    public void handleVoidReturns(byte @ImmutableByteArray [] array) {
+        if(true) {
+            return;
+        }
+        else {
+            throw new RuntimeException("hello");
+        }
+    }
+
+    public void handleFillWithNulls(byte [][] array) {
+        Arrays.fill(array, null);
+    }
 }

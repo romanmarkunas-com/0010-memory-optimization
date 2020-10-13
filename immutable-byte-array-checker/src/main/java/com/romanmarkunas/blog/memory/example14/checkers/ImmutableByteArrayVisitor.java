@@ -73,13 +73,15 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
 
     @Override
     public Void visitReturn(ReturnTree node, Void p) {
-        AnnotatedTypeMirror targetType = atypeFactory.getMethodReturnType(visitorState.getMethodTree(), node);
-        AnnotatedTypeMirror suppliedType = atypeFactory.getAnnotatedType(node.getExpression());
-        recursivelyCheckAssignment(
-                targetType,
-                suppliedType,
-                node
-        );
+        if (node.getExpression() != null) {
+            AnnotatedTypeMirror targetType = atypeFactory.getMethodReturnType(visitorState.getMethodTree(), node);
+            AnnotatedTypeMirror suppliedType = atypeFactory.getAnnotatedType(node.getExpression());
+            recursivelyCheckAssignment(
+                    targetType,
+                    suppliedType,
+                    node
+            );
+        }
         return null;
     }
 

@@ -2,6 +2,8 @@ package com.romanmarkunas.blog.memory.example14.checkers;
 
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
+import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 
 import java.lang.annotation.Annotation;
 import java.util.HashSet;
@@ -21,5 +23,13 @@ public class ImmutableByteArrayAnnotatedTypeFactory extends BaseAnnotatedTypeFac
                 ImmutableByteArray.class,
                 MaybeImmutableByteArray.class
         ));
+    }
+
+    /**
+     * Override default behavior that treats null as {@link ImmutableByteArray}
+     */
+    @Override
+    protected TreeAnnotator createTreeAnnotator() {
+        return new ListTreeAnnotator();
     }
 }
