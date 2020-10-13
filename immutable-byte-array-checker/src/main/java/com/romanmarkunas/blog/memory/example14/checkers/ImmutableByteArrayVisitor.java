@@ -1,9 +1,6 @@
 package com.romanmarkunas.blog.memory.example14.checkers;
 
-import com.sun.source.tree.AssignmentTree;
-import com.sun.source.tree.ExpressionTree;
-import com.sun.source.tree.Tree;
-import com.sun.source.tree.VariableTree;
+import com.sun.source.tree.*;
 import org.checkerframework.common.basetype.BaseTypeVisitor;
 import org.checkerframework.framework.source.DiagMessage;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -25,13 +22,14 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
 
     @Override
     public Void visitAssignment(AssignmentTree node, Void p) {
-        ExpressionTree assignmentVarTree = node.getVariable();
-        if (assignmentVarTree.getKind() == Tree.Kind.ARRAY_ACCESS) {
-            if (isAnnotatedWithImmutableByteArray(atypeFactory.getAnnotatedType(node))) {
-                checker.report(node, new DiagMessage(Diagnostic.Kind.ERROR, MUTATION));
-            }
-        }
+        checkArrayAssignment(node.getVariable(), node);
         return super.visitAssignment(node, p);
+    }
+
+    @Override
+    public Void visitCompoundAssignment(CompoundAssignmentTree node, Void p) {
+        checkArrayAssignment(node.getVariable(), node);
+        return super.visitCompoundAssignment(node, p);
     }
 
     @Override
@@ -74,5 +72,17 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
 
     private boolean isAnnotatedWithImmutableByteArray(final AnnotatedTypeMirror annotatedType) {
         return annotatedType.getAnnotation(ImmutableByteArray.class) != null;
+    }
+
+    private void checkArrayAssignment(final ExpressionTree assignmentVarTree, ExpressionTree assignmentTree) {
+        if (assignmentVarTree.getKind() == Tree.Kind.ARRAY_ACCESS) {
+            ArrayAccessTree arrayAccessTree = (ArrayAccessTree) assignmentVarTree;
+            ExpressionTree arrayIdentifier = arrayAccessTree.getExpression();
+            AnnotatedTypeMirror arrayType = atypeFactory.getAnnotatedType(arrayIdentifier);
+
+            if (isAnnotatedWithImmutableByteArray(arrayType)) {
+                checker.report(assignmentTree, new DiagMessage(Diagnostic.Kind.ERROR, MUTATION));
+            }
+        }
     }
 }
