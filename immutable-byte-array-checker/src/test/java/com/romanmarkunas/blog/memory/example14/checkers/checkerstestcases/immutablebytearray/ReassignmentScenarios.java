@@ -37,9 +37,18 @@ public class ReassignmentScenarios {
         temp[0][0] = (byte) 1;
     }
 
-    public void shouldNotAllowMutationUsingArrayFill(byte @ImmutableByteArray [] array) {
+    public void failMutationUsingArrayFill(byte @ImmutableByteArray [] array) {
         // :: error: (byte.array.weakening)
         Arrays.fill(array, (byte) 1);
+    }
+
+    public void failMutationUsingArrayFillForValueReturnedByMethod() {
+        // :: error: (byte.array.weakening)
+        Arrays.fill(returnArray(), (byte) 1);
+    }
+
+    private byte @ImmutableByteArray [] returnArray() {
+        return new byte @ImmutableByteArray [10];
     }
 
     public void failReassignmentToUnannotatedVariable(byte @ImmutableByteArray [] array) {
@@ -75,8 +84,17 @@ public class ReassignmentScenarios {
         someMethod(array);
     }
 
+    public void allowStrengtheningViaConstructor(byte[] array) {
+        new SomeClass(array);
+    }
+
     private void someMethod(byte @ImmutableByteArray [] array) {
 
+    }
+
+    private static class SomeClass {
+        public SomeClass(byte @ImmutableByteArray [] array) {
+        }
     }
 
     public byte @ImmutableByteArray [] allowStrengtheningReturn(byte[] array) {
@@ -99,5 +117,10 @@ public class ReassignmentScenarios {
 
     public void handleFillWithNulls(byte [][] array) {
         Arrays.fill(array, null);
+    }
+
+    public void failMutationViaConstructor(byte @ImmutableByteArray [] array) {
+        // :: error: (byte.array.weakening)
+        new String(array);
     }
 }

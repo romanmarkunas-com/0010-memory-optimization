@@ -60,11 +60,26 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
                 .executableType
                 .getParameterTypes();
         for (int i = 0; i < suppliedArgs.size(); i++) {
-            ExpressionTree suppliedArg = suppliedArgs.get(i);
-            AnnotatedTypeMirror targetArg = targetArgs.get(i);
             recursivelyCheckAssignment(
-                    targetArg,
-                    atypeFactory.getAnnotatedType(suppliedArg),
+                    targetArgs.get(i),
+                    atypeFactory.getAnnotatedType(suppliedArgs.get(i)),
+                    node
+            );
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitNewClass(NewClassTree node, Void p) {
+        List<? extends ExpressionTree> suppliedArgs = node.getArguments();
+        List<AnnotatedTypeMirror> targetArgs = atypeFactory
+                .constructorFromUse(node)
+                .executableType
+                .getParameterTypes();
+        for (int i = 0; i < suppliedArgs.size(); i++) {
+            recursivelyCheckAssignment(
+                    targetArgs.get(i),
+                    atypeFactory.getAnnotatedType(suppliedArgs.get(i)),
                     node
             );
         }
@@ -92,6 +107,7 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
         }
         return super.visitMethod(node, p);
     }
+
 
     private void recursivelyCheckAssignment(final AnnotatedTypeMirror annotatedTarget, final AnnotatedTypeMirror annotatedSource, Object node) {
         if (!isAnnotatedWithImmutableByteArray(annotatedTarget)
