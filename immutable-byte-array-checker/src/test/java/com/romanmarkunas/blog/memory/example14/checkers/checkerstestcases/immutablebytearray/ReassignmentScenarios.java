@@ -2,6 +2,7 @@ package com.romanmarkunas.blog.memory.example14.checkers.checkerstestcases.immut
 
 import com.romanmarkunas.blog.memory.example14.checkers.ImmutableByteArray;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class ReassignmentScenarios {
@@ -122,5 +123,16 @@ public class ReassignmentScenarios {
     public void failMutationViaConstructor(byte @ImmutableByteArray [] array) {
         // :: error: (byte.array.weakening)
         new String(array);
+    }
+
+    public void failMutationViaConstructorFromMethodReturnValue(ByteArraySupplier supplier) {
+        // :: error: (byte.array.weakening)
+        new String(someMethod(), StandardCharsets.US_ASCII);
+        // :: error: (byte.array.weakening)
+        new String(supplier.get(5));
+    }
+
+    private byte @ImmutableByteArray [] someMethod() {
+        return new byte @ImmutableByteArray [10];
     }
 }
