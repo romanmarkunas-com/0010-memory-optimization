@@ -30,7 +30,7 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
                 atypeFactory.getAnnotatedType(node.getExpression()),
                 node
         );
-        return null;
+        return super.visitAssignment(node, p);
     }
 
     @Override
@@ -49,7 +49,7 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
                     node
             );
         }
-        return null;
+        return super.visitVariable(node, p);
     }
 
     @Override
@@ -61,12 +61,12 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
                 .getParameterTypes();
         for (int i = 0; i < suppliedArgs.size(); i++) {
             recursivelyCheckAssignment(
-                    targetArgs.get(i),
+                    targetArgs.get(Math.min(i, targetArgs.size() - 1)),
                     atypeFactory.getAnnotatedType(suppliedArgs.get(i)),
                     node
             );
         }
-        return null;
+        return super.visitMethodInvocation(node, p);
     }
 
     @Override
@@ -83,7 +83,7 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
                     node
             );
         }
-        return null;
+        return super.visitNewClass(node, p);
     }
 
     @Override
@@ -97,7 +97,7 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
                     node
             );
         }
-        return null;
+        return super.visitReturn(node, p);
     }
 
     @Override
@@ -116,13 +116,17 @@ public class ImmutableByteArrayVisitor extends BaseTypeVisitor<ImmutableByteArra
             return;
         }
 
-        TypeMirror type = annotatedTarget.getUnderlyingType();
-        TypeKind typeKind = type.getKind();
+        TypeKind targetKind = annotatedTarget.getUnderlyingType().getKind();
+        TypeKind sourceKind = annotatedSource.getUnderlyingType().getKind();
 
-        if (typeKind == TypeKind.ARRAY) {
+        if (targetKind == TypeKind.ARRAY && sourceKind == TypeKind.ARRAY) {
             AnnotatedTypeMirror.AnnotatedArrayType annotatedTargetArray = (AnnotatedTypeMirror.AnnotatedArrayType) annotatedTarget;
             AnnotatedTypeMirror.AnnotatedArrayType annotatedSourceArray = (AnnotatedTypeMirror.AnnotatedArrayType) annotatedSource;
             recursivelyCheckAssignment(annotatedTargetArray.getComponentType(), annotatedSourceArray.getComponentType(), node);
+        }
+        else if (targetKind == TypeKind.ARRAY && sourceKind == TypeKind.DECLARED) {
+            AnnotatedTypeMirror.AnnotatedArrayType annotatedTargetArray = (AnnotatedTypeMirror.AnnotatedArrayType) annotatedTarget;
+            recursivelyCheckAssignment(annotatedTargetArray.getComponentType(), annotatedSource, node);
         }
     }
 

@@ -2,6 +2,7 @@ package com.romanmarkunas.blog.memory.example14.checkers;
 
 import org.checkerframework.common.basetype.BaseAnnotatedTypeFactory;
 import org.checkerframework.common.basetype.BaseTypeChecker;
+import org.checkerframework.framework.type.TypeHierarchy;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 
@@ -31,5 +32,13 @@ public class ImmutableByteArrayAnnotatedTypeFactory extends BaseAnnotatedTypeFac
     @Override
     protected TreeAnnotator createTreeAnnotator() {
         return new ListTreeAnnotator();
+    }
+
+    /**
+     * Override subtype checking
+     */
+    @Override
+    protected TypeHierarchy createTypeHierarchy() {
+        return (subtype, supertype) -> true;
     }
 }

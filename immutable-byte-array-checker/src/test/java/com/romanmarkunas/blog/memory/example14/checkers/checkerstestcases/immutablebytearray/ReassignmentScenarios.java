@@ -4,6 +4,9 @@ import com.romanmarkunas.blog.memory.example14.checkers.ImmutableByteArray;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
+
+import static java.util.Arrays.asList;
 
 public class ReassignmentScenarios {
 
@@ -125,14 +128,41 @@ public class ReassignmentScenarios {
         new String(array);
     }
 
-    public void failMutationViaConstructorFromMethodReturnValue(ByteArraySupplier supplier) {
+    public void failMutationViaConstructorAssigningToVariable(ByteArraySupplier supplier) {
         // :: error: (byte.array.weakening)
-        new String(someMethod(), StandardCharsets.US_ASCII);
-        // :: error: (byte.array.weakening)
-        new String(supplier.get(5));
+        String s2 = new String(supplier.get(2), StandardCharsets.US_ASCII);
     }
 
-    private byte @ImmutableByteArray [] someMethod() {
-        return new byte @ImmutableByteArray [10];
+    public String failMutationViaConstructorReturning(ByteArraySupplier supplier) {
+        // :: error: (byte.array.weakening)
+        return new String(supplier.get(5));
+    }
+
+    private String someReturningMethod(byte[] array) {
+        return null;
+    }
+
+    public String failMutationViaMethodReturning(byte @ImmutableByteArray [] array) {
+        // :: error: (byte.array.weakening)
+        return someReturningMethod(array);
+    }
+
+    public void failMutationViaMethodAssigningToVariable(byte @ImmutableByteArray [] array) {
+        // :: error: (byte.array.weakening)
+        String s2 = someReturningMethod(array);
+    }
+
+    public void shouldHandleVarargs(byte @ImmutableByteArray [] array) {
+        List<String> list = asList("1", "2", "3");
+    }
+
+    public void failMutationViaFirstVararg(byte @ImmutableByteArray [] array) {
+        // :: error: (byte.array.weakening)
+        List<byte[]> list = asList(array, new byte[10]);
+    }
+
+    public void failMutationViaSecondVararg(byte @ImmutableByteArray [] array) {
+        // :: error: (byte.array.weakening)
+        List<byte[]> list = asList(new byte[10], array);
     }
 }
