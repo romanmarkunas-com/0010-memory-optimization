@@ -1,5 +1,7 @@
 package com.romanmarkunas.blog.memory.example14;
 
+import com.romanmarkunas.blog.memory.example14.checkers.ImmutableByteArray;
+
 import java.util.Arrays;
 
 public class PooledByteArrayMap {
@@ -50,7 +52,7 @@ public class PooledByteArrayMap {
         }
     }
 
-    public byte[] get(long key) {
+    public byte @ImmutableByteArray [] get(long key) {
         int index = findSlotOf(key);
         return index < 0 ? null : values[index];
     }

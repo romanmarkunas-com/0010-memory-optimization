@@ -21,7 +21,7 @@ class PooledByteArrayMapTest {
     
     @Test
     void getOnNewMapReturnsNull() {
-        assertThat(poolUnderTest.get(1)).isNull();
+        assertThat(getForAssertion(1)).isNull();
         assertThat(poolUnderTest.size()).isEqualTo(0);
     }
 
@@ -30,7 +30,7 @@ class PooledByteArrayMapTest {
         long key = poolUnderTest.put(new byte[] {1, 1, 1});
         poolUnderTest.free(key);
 
-        assertThat(poolUnderTest.get(key)).isNull();
+        assertThat(getForAssertion(key)).isNull();
         assertThat(poolUnderTest.size()).isEqualTo(0);
     }
 
@@ -40,7 +40,7 @@ class PooledByteArrayMapTest {
         long key = poolUnderTest.put(new byte[] {1, 1, 1});
 
         assertThat(key).isNotEqualTo(1);
-        assertThat(poolUnderTest.get(1)).isNull();
+        assertThat(getForAssertion(1)).isNull();
     }
 
 
@@ -52,7 +52,7 @@ class PooledByteArrayMapTest {
     void shouldPutValue() {
         long key = poolUnderTest.put(new byte[] {1, 1, 1});
 
-        assertThat(poolUnderTest.get(key)).isEqualTo(new byte[] {1, 1, 1});
+        assertThat(getForAssertion(key)).isEqualTo(new byte[] {1, 1, 1});
         assertThat(poolUnderTest.size()).isEqualTo(1);
     }
 
@@ -244,8 +244,8 @@ class PooledByteArrayMapTest {
 
         // then
         assertThat(poolUnderTest.size()).isEqualTo(1);
-        assertThat(poolUnderTest.get(key2)).isNull();
-        assertThat(poolUnderTest.get(key1)).isNotNull();
+        assertThat(getForAssertion(key2)).isNull();
+        assertThat(getForAssertion(key1)).isNotNull();
     }
 
 
@@ -275,5 +275,10 @@ class PooledByteArrayMapTest {
         long memory1 = threadMXBean.getThreadAllocatedBytes(Thread.currentThread().getId());
         long memory2 = threadMXBean.getThreadAllocatedBytes(Thread.currentThread().getId());
         return memory2 - memory1;
+    }
+
+    @SuppressWarnings("byte.array.weakening")
+    private byte [] getForAssertion(long key) {
+        return poolUnderTest.get(key);
     }
 }

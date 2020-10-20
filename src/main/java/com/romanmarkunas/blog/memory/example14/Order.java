@@ -101,6 +101,7 @@ public final class Order {
         return byteArrayPool.put(str.getBytes(StandardCharsets.US_ASCII));
     }
 
+    @SuppressWarnings("byte.array.weakening")
     private String restoreString(long key, PooledByteArrayMap byteArrayPool) {
         return new String(byteArrayPool.get(key), StandardCharsets.US_ASCII);
     }
