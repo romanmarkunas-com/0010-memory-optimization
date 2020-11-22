@@ -157,28 +157,6 @@ class PooledByteArrayMapTest {
         assertThatThrownBy(() -> poolUnderTest.put(value)).isInstanceOf(IllegalStateException.class);
     }
 
-    @Test
-    void failFastIfFoundOutMutatedValueCompromisedPoolConsistency() {
-        // given
-        for (int i = 0; i < INITIAL_CAPACITY - 2; i++) {
-            poolUnderTest.put(new byte[] {(byte) i});
-        }
-
-        byte[] arr1 = {1, 0};
-        byte[] arr2 = {1, 1};
-        assertThat(Arrays.hashCode(arr1)).isNotEqualTo(Arrays.hashCode(arr2));
-
-        poolUnderTest.put(arr1);
-        poolUnderTest.put(arr2);
-        assertThat(poolUnderTest.size()).isEqualTo(INITIAL_CAPACITY);
-
-        // when
-        arr2[1] = 0;
-        assertThat(Arrays.hashCode(arr1)).isEqualTo(Arrays.hashCode(arr2));
-
-        assertThatThrownBy(() -> poolUnderTest.put(new byte[] {INITIAL_CAPACITY})).isInstanceOf(IllegalStateException.class);
-    }
-
 
     /**
      * {@link PooledByteArrayMap#free(long)}

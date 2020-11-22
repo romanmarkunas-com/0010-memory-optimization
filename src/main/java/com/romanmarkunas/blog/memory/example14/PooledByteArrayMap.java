@@ -6,27 +6,38 @@ import java.util.Arrays;
 
 public class PooledByteArrayMap {
 
+    private static final int[] PROBING_STEPS = new int[] {
+            99991,
+            9973,
+            997,
+            97,
+            7,
+            1
+    };
     private static final byte[] REMOVED = new byte[0];
     private static final long FREE_OR_REMOVED = 0;
-//    private static final int CAPACITY_INCREMENT = 16384;
-    private static final int CAPACITY_INCREMENT = 8192;
+    private static final int CAPACITY_INCREMENT = 4096;
     private static final int UNIQUIFIER_MASK = 0xFFFF0000;
     private static final int HASHCODE_MASK = 0x00007FFF;
+//    private final LongHashFunction hashFunction = LongHashFunction.murmur_3();
 
     private int keyUniquefier = 1;
     private long[] keys;
     private byte[][] values;
     private int[] usages;
     private int size = 0;
+    private int probingStep;
 
 
     public PooledByteArrayMap(int initialCapacity) {
-        createInternalArrays(initialCapacity);
+        probingStep = probingStepFor(initialCapacity);
+        int capacity = correctCapacityToAvoidLoopingOverSameSlots(probingStep, initialCapacity);
+        createInternalArrays(capacity);
     }
 
 
     public long put(byte[] value) {
-        int valueHashCode = Arrays.hashCode(value) & HASHCODE_MASK;
+        int valueHashCode = calculateHashCode(value);
 
         ensureCapacity(size + 1);
 
@@ -94,7 +105,9 @@ public class PooledByteArrayMap {
             return;
         }
 
-        int newCapacity = newCapacity(currentCapacity);
+        int newCapacity = increasedCapacity(currentCapacity);
+        probingStep = probingStepFor(newCapacity);
+        newCapacity = correctCapacityToAvoidLoopingOverSameSlots(probingStep, newCapacity);
 
         long[] oldKeys = keys;
         byte[][] oldValues = values;
@@ -107,13 +120,7 @@ public class PooledByteArrayMap {
             if (oldKey != FREE_OR_REMOVED) {
                 byte[] oldValue = oldValues[i];
 
-                int index = findSlotFor(oldValue, hashCode(oldKey));
-                if (index < 0) {
-                    throw new IllegalStateException(
-                            "Value mutated, leaving pool in inconsistent state! "
-                          + "Key: " + oldKey + ", value: " + Arrays.toString(oldValue)
-                    );
-                }
+                int index = findSlotFor(oldValue, hashCodeFromKey(oldKey));
 
                 keys[index] = oldKey;
                 values[index] = oldValue;
@@ -129,7 +136,7 @@ public class PooledByteArrayMap {
         int i = startingIndex;
         do {
             if (isFree(i)) {
-                return i;
+                return firstRemoved != -1 ? firstRemoved : i;
             }
             if (isFull(i) && Arrays.equals(value, values[i])) {
                 return -i - 1; // encode existing value as negative number, -1 is necessary because 0 is valid index
@@ -149,7 +156,8 @@ public class PooledByteArrayMap {
     }
 
     private int incrementIndex(int index) {
-        return index >= keys.length - 1 ? 0 : index + 1;
+        index += probingStep;
+        return index >= keys.length ? index - keys.length : index;
     }
 
     private long getAndIncrementUniquifier() {
@@ -172,8 +180,7 @@ public class PooledByteArrayMap {
     }
 
     private int findSlotOf(long key) {
-        int valueHashCode = hashCode(key);
-
+        int valueHashCode = hashCodeFromKey(key);
         int startingIndex = valueHashCode % values.length;
 
         int i = startingIndex;
@@ -191,26 +198,50 @@ public class PooledByteArrayMap {
         return -1;
     }
 
-    private int hashCode(long key) {
+    private static int hashCodeFromKey(long key) {
         return (int) (key & HASHCODE_MASK);
     }
 
-    private int newCapacity(int currentCapacity) {
-        // double until chunk (8192 ¬ 32K) worth of references
+    private static int calculateHashCode(byte[] value) {
+//        return ((int) hashFunction.hashBytes(value)) & HASHCODE_MASK;
+
+        int hashCode = Arrays.hashCode(value);
+        hashCode = hashCode ^ (hashCode >>> 16);
+        return hashCode & HASHCODE_MASK;
+    }
+
+    private static int probingStepFor(int capacity) {
+        for (int i = 0; i < PROBING_STEPS.length; i++) {
+            int step = PROBING_STEPS[i];
+            if (step <= capacity) {
+                return step;
+            }
+        }
+        return 1; // never executed as last of PROBING_STEPS is 1 and capacity must be at least 1
+    }
+
+    private static int increasedCapacity(int currentCapacity) {
+        // double until chunk (4096 ¬ 16K) worth of references
         if (currentCapacity < CAPACITY_INCREMENT) {
             return currentCapacity * 2;
         }
         // cap at max value
-        else if (currentCapacity > Integer.MAX_VALUE - CAPACITY_INCREMENT) {
+        if (currentCapacity > Integer.MAX_VALUE - CAPACITY_INCREMENT) {
             return Integer.MAX_VALUE;
         }
         // round up until whole increment of a chunk
-        else if (currentCapacity < CAPACITY_INCREMENT * 2) {
-            return CAPACITY_INCREMENT * 2;
+        int mod = currentCapacity % CAPACITY_INCREMENT;
+        if (mod != 0) {
+            return currentCapacity + CAPACITY_INCREMENT - mod;
         }
         // add another chunk on top
-        else {
-            return currentCapacity + CAPACITY_INCREMENT;
+        return currentCapacity + CAPACITY_INCREMENT;
+    }
+
+    private static int correctCapacityToAvoidLoopingOverSameSlots(final int probingStep, final int capacity) {
+        if (probingStep > 1 && capacity % probingStep == 0) {
+            return capacity + 1;
         }
+        return capacity;
     }
 }

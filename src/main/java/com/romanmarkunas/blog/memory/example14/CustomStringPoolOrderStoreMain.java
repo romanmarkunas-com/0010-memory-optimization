@@ -18,9 +18,10 @@ public class CustomStringPoolOrderStoreMain {
         long startTimeMs = System.currentTimeMillis();
 
         ObjectMapper mapper = new ObjectMapper();
+        PooledByteArrayMap pool = new PooledByteArrayMap(80_000);
         mapper.setInjectableValues(new InjectableValues.Std().addValue(
                 PooledByteArrayMap.class,
-                new PooledByteArrayMap(1024)
+                pool
         ));
 
         Long2ObjectHashMap<Order> ordersById = new Long2ObjectHashMap<>();

@@ -33,6 +33,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.11.0'
     implementation 'org.agrona:agrona:1.6.0'
     implementation project(':immutable-byte-array-checker') // normally annotations and checker would ship separately
+    implementation 'net.openhft:zero-allocation-hashing:0.12'
 
     checkerFramework "org.checkerframework:checker:${vCheckersFramework}"
     checkerFramework project(':immutable-byte-array-checker')
