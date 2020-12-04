@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OrderSlabAllocatorTest {
 
@@ -23,6 +24,23 @@ class OrderSlabAllocatorTest {
         // then
         OrderView readView = allocatorUnderTest.get(key);
         assertValues(TestOrder.ORDER_1, readView);
+    }
+
+    @Test
+    void shouldWriteAndReadSymmetricallyInMultipleSlabs() {
+        // given
+        for (int i = 0; i < 2 * OrderSlabAllocator.MAX_OBJECTS_IN_SINGLE_SLAB; i++) {
+            allocatorUnderTest.allocate();
+        }
+
+        // when
+        int key = allocatorUnderTest.allocate();
+        OrderView writeView = allocatorUnderTest.get(key);
+        setValuesFrom(TestOrder.ORDER_2, writeView);
+
+        // then
+        OrderView readView = allocatorUnderTest.get(key);
+        assertValues(TestOrder.ORDER_2, readView);
     }
 
     @Test
@@ -179,6 +197,102 @@ class OrderSlabAllocatorTest {
         assertThat(key9).isEqualTo(key5);
         assertThat(keyA).isEqualTo(key6);
         assertThat(Set.of(key1, key2, key8, key4, key9, keyA, key7)).doesNotContain(keyB);
+    }
+
+    @Test
+    void shouldFreeObjectJustBehindSubsequentFreeSpaceAndUseFreedSlotInSubsequentAllocation() {
+        // given 12_4_67__...
+        int key1 = allocatorUnderTest.allocate();
+        int key2 = allocatorUnderTest.allocate();
+        int key3 = allocatorUnderTest.allocate();
+        int key4 = allocatorUnderTest.allocate();
+        int key5 = allocatorUnderTest.allocate();
+        int key6 = allocatorUnderTest.allocate();
+        int key7 = allocatorUnderTest.allocate();
+        allocatorUnderTest.free(key3);
+        allocatorUnderTest.free(key5);
+
+        // when 12_4__7__...
+        allocatorUnderTest.free(key6);
+
+        // then 12849A7B_...
+        int key8 = allocatorUnderTest.allocate();
+        int key9 = allocatorUnderTest.allocate();
+        int keyA = allocatorUnderTest.allocate();
+        int keyB = allocatorUnderTest.allocate();
+        assertThat(key8).isEqualTo(key3);
+        assertThat(key9).isEqualTo(key5);
+        assertThat(keyA).isEqualTo(key6);
+        assertThat(Set.of(key1, key2, key8, key4, key9, keyA, key7)).doesNotContain(keyB);
+    }
+
+    @Test
+    void shouldBeAbleToFreeVeryLastSlotInSlabAndReuseItInNextAllocation() {
+        // given ...XYZ
+        for (int i = 0; i < OrderSlabAllocator.MAX_OBJECTS_IN_SINGLE_SLAB - 1; i++) {
+            allocatorUnderTest.allocate();
+        }
+        int keyZ = allocatorUnderTest.allocate();
+
+        // when ...XY_
+        allocatorUnderTest.free(keyZ);
+
+        // then ...XY1
+        int key1 = allocatorUnderTest.allocate();
+        assertThat(key1).isEqualTo(keyZ);
+    }
+
+    @Test
+    void shouldFailFastWhenFreeingAlreadyFreeMemoryForSingleObjectSlot() {
+        // given 1_3__...
+        allocatorUnderTest.allocate();
+        int key2 = allocatorUnderTest.allocate();
+        allocatorUnderTest.allocate();
+        allocatorUnderTest.free(key2);
+
+        assertThatThrownBy(() -> allocatorUnderTest.free(key2)).isExactlyInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void shouldFailFastWhenFreeingAlreadyFreeMemory() {
+        // given 1___5__...
+        allocatorUnderTest.allocate();
+        int key2 = allocatorUnderTest.allocate();
+        int key3 = allocatorUnderTest.allocate();
+        int key4 = allocatorUnderTest.allocate();
+        allocatorUnderTest.allocate();
+        allocatorUnderTest.free(key2);
+        allocatorUnderTest.free(key4);
+        allocatorUnderTest.free(key3);
+
+        assertThatThrownBy(() -> allocatorUnderTest.free(key2)).isExactlyInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> allocatorUnderTest.free(key3)).isExactlyInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> allocatorUnderTest.free(key4)).isExactlyInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void shouldFailFastWhenFreeingAlreadyFreeLastSlot() {
+        // given ...XY_
+        for (int i = 0; i < OrderSlabAllocator.MAX_OBJECTS_IN_SINGLE_SLAB - 1; i++) {
+            allocatorUnderTest.allocate();
+        }
+        int keyZ = allocatorUnderTest.allocate();
+        allocatorUnderTest.free(keyZ);
+
+        assertThatThrownBy(() -> allocatorUnderTest.free(keyZ)).isExactlyInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void shouldFailFastWhenFreeingAlreadyFreeInSubsequentSlab() {
+        // given
+        for (int i = 0; i < 2 * OrderSlabAllocator.MAX_OBJECTS_IN_SINGLE_SLAB - 1; i++) {
+            allocatorUnderTest.allocate();
+        }
+        int key = allocatorUnderTest.allocate();
+        allocatorUnderTest.free(key);
+        assertThat(key).isGreaterThan(OrderSlabAllocator.MAX_OBJECTS_IN_SINGLE_SLAB);
+
+        assertThatThrownBy(() -> allocatorUnderTest.free(key)).isExactlyInstanceOf(IllegalStateException.class);
     }
 
 

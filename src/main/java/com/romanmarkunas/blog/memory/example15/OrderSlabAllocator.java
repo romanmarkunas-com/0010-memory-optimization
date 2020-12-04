@@ -11,6 +11,8 @@ import java.util.List;
  */
 public class OrderSlabAllocator {
 
+    static final int MAX_OBJECTS_IN_SINGLE_SLAB = Slab.MAX_OBJECTS_IN_SLAB;
+
     private final List<Slab> slabs = new ArrayList<>();
     private final OrderView view;
 
@@ -62,6 +64,8 @@ public class OrderSlabAllocator {
         private static final int SLAB_SIZE_BYTES = 1024 * 1024;
         private static final int OBJECT_SIZE_BYTES = OrderView.TOTAL_SIZE;
         private static final int MAX_OBJECTS_IN_SLAB = SLAB_SIZE_BYTES / OBJECT_SIZE_BYTES;
+        private static final int LEFT_OUTSIDE_SLAB = -1;
+        private static final int RIGHT_OUTSIDE_SLAB = MAX_OBJECTS_IN_SLAB;
 
         private final OrderView view;
         private final ByteBuffer buffer;
@@ -73,7 +77,8 @@ public class OrderSlabAllocator {
             this.view = view;
             buffer = ByteBuffer.allocate(SLAB_SIZE_BYTES);
             firstFreeSpacePosition = 0;
-            putFreeListInfo(firstFreeSpacePosition, MAX_OBJECTS_IN_SLAB, MAX_OBJECTS_IN_SLAB);
+            setSizeOfFreeSpace(firstFreeSpacePosition, MAX_OBJECTS_IN_SLAB);
+            setNextFreeSpacePosition(firstFreeSpacePosition, RIGHT_OUTSIDE_SLAB);
         }
 
 
@@ -84,7 +89,7 @@ public class OrderSlabAllocator {
         public int putIntoFirstFree() {
             int allocatedPosition = this.firstFreeSpacePosition;
 
-            int freeSpaceSize = getFreeSpaceSizeInObjects(firstFreeSpacePosition);
+            int freeSpaceSize = geSizeOfFreeSpaceInObjects(firstFreeSpacePosition);
             int nextFreeSpacePosition = getNextFreeSpacePosition(firstFreeSpacePosition);
 
             if (freeSpaceSize == 1) {
@@ -92,45 +97,50 @@ public class OrderSlabAllocator {
             }
             else {
                 this.firstFreeSpacePosition++;
-                putFreeListInfo(firstFreeSpacePosition, freeSpaceSize - 1, nextFreeSpacePosition);
+                setSizeOfFreeSpace(firstFreeSpacePosition, freeSpaceSize - 1);
+                setNextFreeSpacePosition(firstFreeSpacePosition, nextFreeSpacePosition);
             }
 
             return allocatedPosition;
         }
 
         public void free(int index) {
-            if (index < firstFreeSpacePosition - 1) { // freeing creates new first free space
-                int previousFirstFreePosition = this.firstFreeSpacePosition;
-                this.firstFreeSpacePosition = index;
-                putFreeListInfo(index, 1, previousFirstFreePosition);
-                return;
-            }
-
-            int freeSpaceSize = getFreeSpaceSizeInObjects(firstFreeSpacePosition);
-            int nextFreeSpacePosition = getNextFreeSpacePosition(firstFreeSpacePosition);
-
-            if (index == firstFreeSpacePosition - 1) { // freeing prepends to existing first free space
-                this.firstFreeSpacePosition--;
-                putFreeListInfo(firstFreeSpacePosition, freeSpaceSize + 1, nextFreeSpacePosition);
-                return;
-            }
-
-            if (index == firstFreeSpacePosition + freeSpaceSize) { // freeing appends to existing first free space
-                putFreeListInfo(firstFreeSpacePosition, freeSpaceSize + 1, nextFreeSpacePosition);
-                return;
-            }
-
-            // freeing happens after first free space
-            int left = firstFreeSpacePosition;
-            int right = nextFreeSpacePosition;
+            // find between which pair of free spaces new free slot will appear
+            // for full slab, firstFreeSpacePosition == RIGHT_OUTSIDE_SLAB
+            int left = LEFT_OUTSIDE_SLAB;
+            int right = firstFreeSpacePosition;
 
             while (!(index > left && index < right)) {
+                if (index == right || (right + geSizeOfFreeSpaceInObjects(right) > index)) {
+                    throw new IllegalStateException("Freeing again @ index [" + index + "]");
+                }
                 left = right;
                 right = getNextFreeSpacePosition(right);
             }
 
-            putFreeListInfo(left, getFreeSpaceSizeInObjects(left), index);
-            putFreeListInfo(index, 1, right);
+            // for simplicity do not handle merging free spaces into one, which is &&'ed 2 clauses below
+            if (index == right - 1) { // freeing prepends to right free space
+                if (left != LEFT_OUTSIDE_SLAB) {
+                    setNextFreeSpacePosition(left, index);
+                }
+                setSizeOfFreeSpace(index, geSizeOfFreeSpaceInObjects(right) + 1);
+                setNextFreeSpacePosition(index, getNextFreeSpacePosition(right));
+            }
+            else if (left != LEFT_OUTSIDE_SLAB && index == left + geSizeOfFreeSpaceInObjects(left)) { // freeing appends to left free space
+                setSizeOfFreeSpace(left, geSizeOfFreeSpaceInObjects(left) + 1);
+            }
+            else { // freeing is somewhere between left and right without touching them
+                if (left != LEFT_OUTSIDE_SLAB) {
+                    setNextFreeSpacePosition(left, index);
+                }
+                setSizeOfFreeSpace(index, 1);
+                setNextFreeSpacePosition(index, right);
+            }
+
+            // set first free space to leftmost free space
+            if (index < firstFreeSpacePosition) {
+                firstFreeSpacePosition = index;
+            }
         }
 
         public boolean hasSpace() {
@@ -142,21 +152,20 @@ public class OrderSlabAllocator {
             return position * OBJECT_SIZE_BYTES;
         }
 
-        private void putFreeListInfo(
-                int positionOfFreeSpace,
-                int sizeOfFreeSpaceInObjects,
-                int nextFreeSpacePosition
-        ) {
-            buffer.putInt(byteOffsetOf(positionOfFreeSpace), sizeOfFreeSpaceInObjects);
-            buffer.putInt(byteOffsetOf(positionOfFreeSpace) + Integer.BYTES, nextFreeSpacePosition);
+        private int geSizeOfFreeSpaceInObjects(int positionOfFreeSpace) {
+            return buffer.getInt(byteOffsetOf(positionOfFreeSpace));
         }
 
-        private int getFreeSpaceSizeInObjects(int positionOfFreeSpace) {
-            return buffer.getInt(byteOffsetOf(positionOfFreeSpace));
+        private void setSizeOfFreeSpace(int positionOfFreeSpace, int sizeOfFreeSpaceInObjects) {
+            buffer.putInt(byteOffsetOf(positionOfFreeSpace), sizeOfFreeSpaceInObjects);
         }
 
         private int getNextFreeSpacePosition(int positionOfFreeSpace) {
             return buffer.getInt(byteOffsetOf(positionOfFreeSpace) + Integer.BYTES);
+        }
+
+        private void setNextFreeSpacePosition(int positionOfFreeSpace, int nextFreeSpacePosition) {
+            buffer.putInt(byteOffsetOf(positionOfFreeSpace) + Integer.BYTES, nextFreeSpacePosition);
         }
     }
 }
