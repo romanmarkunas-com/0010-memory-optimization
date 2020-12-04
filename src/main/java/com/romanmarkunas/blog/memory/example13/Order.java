@@ -55,7 +55,7 @@ public final class Order implements Serializable {
         return user;
     }
 
-    public Integer getArticleNr() {
+    public int getArticleNr() {
         return articleNr;
     }
 

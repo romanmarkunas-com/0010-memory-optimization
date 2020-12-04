@@ -1,18 +1,19 @@
-package com.romanmarkunas.blog.memory.example14;
+package com.romanmarkunas.blog.memory.example15;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
+import com.romanmarkunas.blog.memory.example14.Order;
+import com.romanmarkunas.blog.memory.example14.PooledByteArrayMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
-public class CustomStringPoolOrderStoreMain {
+public class SlabAllocatorOrderStoreMain {
 
     public static void main(String[] args) throws JsonProcessingException {
         long startTimeMs = System.currentTimeMillis();
@@ -24,16 +25,18 @@ public class CustomStringPoolOrderStoreMain {
                 pool
         ));
 
-        Long2ObjectHashMap<Order> ordersById = new Long2ObjectHashMap<>();
-        Long2ObjectHashMap<List<Order>> ordersByUser = new Long2ObjectHashMap<>();
+        Long2ObjectHashMap<OrderView> ordersById = new Long2ObjectHashMap<>();
+        Long2ObjectHashMap<List<OrderView>> ordersByUser = new Long2ObjectHashMap<>();
 
         try (Scanner scanner = new Scanner(System.in)) {
             while (true) {
                 if (scanner.hasNextLine()) {
                     String received = scanner.nextLine();
                     Order order = mapper.readValue(received, Order.class);
-                    ordersById.put(order.getId(), order);
-                    ordersByUser.computeIfAbsent(order.getUserPoolKey(), key -> new ArrayList<>(1)).add(order);
+
+//                    ordersById.put(order.getId(), order);
+
+//                    ordersByUser.computeIfAbsent(order.getUser(), key -> new ArrayList<>(1)).add(order);
                 }
                 else {
                     LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(5));

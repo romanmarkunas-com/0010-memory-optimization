@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JacksonInject;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.romanmarkunas.blog.memory.example14.checkers.ImmutableByteArray;
 
 import java.nio.charset.StandardCharsets;
 
@@ -52,11 +53,15 @@ public final class Order {
         return id;
     }
 
-    public long getUser() {
+    public byte @ImmutableByteArray [] getUser(PooledByteArrayMap byteArrayPool) {
+        return byteArrayPool.get(user);
+    }
+
+    public long getUserPoolKey() {
         return user;
     }
 
-    public Integer getArticleNr() {
+    public int getArticleNr() {
         return articleNr;
     }
 

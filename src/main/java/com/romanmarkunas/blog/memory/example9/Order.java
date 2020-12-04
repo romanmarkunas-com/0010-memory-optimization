@@ -39,7 +39,7 @@ public final class Order {
         return user;
     }
 
-    public Integer getArticleNr() {
+    public int getArticleNr() {
         return articleNr;
     }
 
