@@ -68,7 +68,11 @@ public final class OrderView {
     }
 
     public byte @ImmutableByteArray [] getUser() {
-        return byteArrayPool.get(buffer.getLong(startPosition + USER_OFFSET));
+        return byteArrayPool.get(getUserPoolKey());
+    }
+
+    public long getUserPoolKey() {
+        return buffer.getLong(startPosition + USER_OFFSET);
     }
 
     public int getArticleNr() {
@@ -166,4 +170,5 @@ public final class OrderView {
     private String restoreString(long key) {
         return new String(byteArrayPool.get(key), StandardCharsets.US_ASCII);
     }
+
 }

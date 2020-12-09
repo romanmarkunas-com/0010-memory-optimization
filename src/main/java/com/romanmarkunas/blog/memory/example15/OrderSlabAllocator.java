@@ -61,7 +61,7 @@ public class OrderSlabAllocator {
 
     private static class Slab {
 
-        private static final int SLAB_SIZE_BYTES = 1024 * 1024;
+        private static final int SLAB_SIZE_BYTES = 16 * 1024;
         private static final int OBJECT_SIZE_BYTES = OrderView.TOTAL_SIZE;
         private static final int MAX_OBJECTS_IN_SLAB = SLAB_SIZE_BYTES / OBJECT_SIZE_BYTES;
         private static final int LEFT_OUTSIDE_SLAB = -1;
