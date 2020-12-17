@@ -3,6 +3,7 @@ package com.romanmarkunas.blog.memory.example16;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
+import com.romanmarkunas.blog.memory.example14.PooledByteArrayMap;
 import org.agrona.collections.Long2LongHashMap;
 import org.agrona.collections.Long2ObjectHashMap;
 
