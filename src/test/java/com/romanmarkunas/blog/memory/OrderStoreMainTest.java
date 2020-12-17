@@ -10,7 +10,8 @@ import com.romanmarkunas.blog.memory.example11.CustomStringEncodingOrderStoreMai
 import com.romanmarkunas.blog.memory.example12.LessReferencesOrderStoreMain;
 import com.romanmarkunas.blog.memory.example13.CompressingOrderStoreMain;
 import com.romanmarkunas.blog.memory.example14.CustomStringPoolOrderStoreMain;
-import com.romanmarkunas.blog.memory.example15.SlabAllocatorOrderStoreMain;
+import com.romanmarkunas.blog.memory.example15.CustomStringPoolArrayCapacityOrderStoreMain;
+import com.romanmarkunas.blog.memory.example16.SlabAllocatorOrderStoreMain;
 import com.romanmarkunas.blog.memory.example4.TwoGCRootsOrderStoreMain;
 import com.romanmarkunas.blog.memory.example8.EfficientCollectionsOrderStoreMain;
 import com.romanmarkunas.blog.memory.example9.AvoidBoxingOrderStoreMain;
@@ -214,24 +215,41 @@ class OrderStoreMainTest {
                 = new com.romanmarkunas.blog.memory.example11.OrderGenerator(addresses);
         process = runInSeparateJvm(
                 CustomStringPoolOrderStoreMain.class,
-                "-Xmx64m"
-//                "-Xmx64m",
-//                "-XX:+HeapDumpOnOutOfMemoryError",
-//                "-XX:HeapDumpPath=dump14.hprof"
+                "-Xmx64m",
+                "-Xlog:gc*"
         );
         stuffOtherJvmUntilItDies(process, generator::next);
     }
 
     @Test
-    void example15SlabAllocator() {
+    void example15CustomStringPoolWithImprovedArrayCapacity() {
+        com.romanmarkunas.blog.memory.example11.OrderGenerator generator
+                = new com.romanmarkunas.blog.memory.example11.OrderGenerator(addresses);
+        process = runInSeparateJvm(
+                CustomStringPoolArrayCapacityOrderStoreMain.class,
+                "-Xmx64m",
+                "-Xlog:gc*"
+//                "-Xmx64m",
+//                "-XX:+UseConcMarkSweepGC",
+//                "-XX:+HeapDumpOnOutOfMemoryError",
+//                "-XX:HeapDumpPath=dump15.hprof"
+        );
+        stuffOtherJvmUntilItDies(process, generator::next);
+    }
+
+    @Test
+    void example16SlabAllocator() {
         com.romanmarkunas.blog.memory.example11.OrderGenerator generator
                 = new com.romanmarkunas.blog.memory.example11.OrderGenerator(addresses);
         process = runInSeparateJvm(
                 SlabAllocatorOrderStoreMain.class,
                 "-Xmx64m"
 //                "-Xmx64m",
-//                "-XX:G1HeapRegionSize=2M",
-//                "-Xlog:gc*"
+//                "-Xlog:gc*",
+//                "-XX:+UnlockDiagnosticVMOptions",
+//                "-XX:+UseConcMarkSweepGC",
+//                "-XX:+HeapDumpOnOutOfMemoryError",
+//                "-XX:HeapDumpPath=dump16.hprof"
         );
         stuffOtherJvmUntilItDies(process, generator::next);
     }
@@ -250,8 +268,7 @@ class OrderStoreMainTest {
         }
     }
 
-    private static Process runInSeparateJvm(Class<?> clazz, String... jvmArgs)
-    {
+    private static Process runInSeparateJvm(Class<?> clazz, String... jvmArgs) {
         List<String> command = new ArrayList<>();
         command.add(System.getProperty("java.home") + File.separator + "bin" + File.separator + "java");
         command.addAll(asList(jvmArgs));

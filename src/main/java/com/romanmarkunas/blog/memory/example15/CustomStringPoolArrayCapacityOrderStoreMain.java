@@ -1,24 +1,33 @@
-package com.romanmarkunas.blog.memory.example11;
+package com.romanmarkunas.blog.memory.example15;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
+import com.romanmarkunas.blog.memory.example14.Order;
+import com.romanmarkunas.blog.memory.example14.PooledByteArrayMap;
 import org.agrona.collections.Long2ObjectHashMap;
-import org.agrona.collections.Object2ObjectHashMap;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
-public class CustomStringEncodingOrderStoreMain {
+public class CustomStringPoolArrayCapacityOrderStoreMain {
 
     public static void main(String[] args) throws JsonProcessingException {
         long startTimeMs = System.currentTimeMillis();
+
         ObjectMapper mapper = new ObjectMapper();
-        Long2ObjectHashMap<Order> ordersById = new Long2ObjectHashMap<>(8, 0.9f);
-        Map<Base36String, List<Order>> ordersByUser = new Object2ObjectHashMap<>(8, 0.9f);
+        PooledByteArrayMap pool = new PooledByteArrayMap(80_000);
+        mapper.setInjectableValues(new InjectableValues.Std().addValue(
+                PooledByteArrayMap.class,
+                pool
+        ));
+
+        Long2ObjectHashMap<Order> ordersById = new Long2ObjectHashMap<>(8, 0.85f);
+        Long2ObjectHashMap<List<Order>> ordersByUser = new Long2ObjectHashMap<>(8, 0.85f);
 
         try (Scanner scanner = new Scanner(System.in)) {
             while (true) {
@@ -26,13 +35,14 @@ public class CustomStringEncodingOrderStoreMain {
                     String received = scanner.nextLine();
                     Order order = mapper.readValue(received, Order.class);
                     ordersById.put(order.getId(), order);
-                    ordersByUser.computeIfAbsent(new Base36String(order.getUser()), key -> new ArrayList<>(1)).add(order);
-                } else {
+                    ordersByUser.computeIfAbsent(order.getUserPoolKey(), key -> new ArrayList<>(1)).add(order);
+                }
+                else {
                     LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(5));
                 }
             }
         }
-        catch (OutOfMemoryError oom) {
+        catch (OutOfMemoryError | ValueInstantiationException oom) {
             System.out.println("Total orders: " + ordersById.size());
             System.out.println("Total users: " + ordersByUser.size());
             System.out.println("Total run time: " + (System.currentTimeMillis() - startTimeMs));

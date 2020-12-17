@@ -1,6 +1,5 @@
-package com.romanmarkunas.blog.memory.example15;
+package com.romanmarkunas.blog.memory.example16;
 
-import com.romanmarkunas.blog.memory.example14.PooledByteArrayMap;
 import com.romanmarkunas.blog.memory.example14.checkers.ImmutableByteArray;
 
 import java.nio.ByteBuffer;
