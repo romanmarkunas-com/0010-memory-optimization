@@ -14,19 +14,24 @@ public class PooledByteArrayMap {
             7,
             1
     };
-    private static final byte[] REMOVED = new byte[0];
-    private static final long FREE_OR_REMOVED = 0;
     private static final int CAPACITY_INCREMENT = 4096;
-    private static final int UNIQUIFIER_MASK = 0xFFFF0000;
-    private static final int HASHCODE_MASK = 0x00007FFF;
+    private static final int HASHCODE_MASK = 0x7FFF_FFFF;
+
+    private static final byte[] REMOVED_VALUE = new byte[0];
+    private static final byte[] FREE_VALUE = null; // avoid initializing arrays on creation
+    //      static final int REMOVED_KEY = any negative value;
+    private static final int FREE_KEY = Integer.MIN_VALUE;
+    private static final int NO_REMOVED_KEY = Integer.MIN_VALUE + 1;
 //    private final LongHashFunction hashFunction = LongHashFunction.murmur_3();
 
-    private int keyUniquefier = 1;
-    private long[] keys;
+    private int keyGenerator = 0;
+    private int[] valueIndexesByKey; // index = key, cell = 1) positive until MAX - 2: value index; 2) negative: free or removed; 2a) negative MIN: free init value; 2b) negative not min: negate - 1 gives next free key slot for reuse
+    private int[] keysByValueIndex; // index = value slot, cell = key
     private byte[][] values;
     private int[] usages;
-    private int size = 0;
+    private int size = 0; // max size should be MAX - 2
     private int probingStep;
+    private int lastRemovedKey = NO_REMOVED_KEY;
 
 
     public PooledByteArrayMap(int initialCapacity) {
@@ -37,6 +42,7 @@ public class PooledByteArrayMap {
 
 
     public long put(byte[] value) {
+        // TODO: fail on null cause it's a special value of FREE cell
         int valueHashCode = calculateHashCode(value);
 
         ensureCapacity(size + 1);
@@ -45,37 +51,49 @@ public class PooledByteArrayMap {
 
         if (index < 0) {
             int indexOfExistingItem = -(index + 1);
-            if (usages[indexOfExistingItem] >= Integer.MAX_VALUE) {
+            int key = keysByValueIndex[indexOfExistingItem];
+            if (usages[key] >= Integer.MAX_VALUE) {
                 throw new IllegalStateException("Too many reuses of same byte[] - " + Arrays.toString(value));
             }
-            usages[indexOfExistingItem]++;
-            return keys[indexOfExistingItem];
+            usages[key]++;
+            return key;
         }
         else {
-            long uniquePrefix = (getAndIncrementUniquifier() << Integer.SIZE) & UNIQUIFIER_MASK;
-            long key = uniquePrefix | valueHashCode;
+            int key = lastRemovedKey == NO_REMOVED_KEY ? getAndIncrementUniquifier() : getLastRemovedKey();
 
-            keys[index] = key;
+            valueIndexesByKey[key] = index;
+            keysByValueIndex[index] = key;
             values[index] = value;
-            usages[index] = 1;
+            usages[key] = 1;
             size++;
             return key;
         }
     }
 
+    private int getLastRemovedKey() {
+        int freeKey = -lastRemovedKey - 1;
+        lastRemovedKey = valueIndexesByKey[freeKey];
+        return freeKey;
+    }
+
     public byte @ImmutableByteArray [] get(long key) {
-        int index = findSlotOf(key);
-        return index < 0 ? null : values[index];
+        if (isFree((int) key) || isRemoved((int) key)) {
+            return null;
+        }
+        else {
+            int valueIndex = valueIndexesByKey[(int) key];
+            return values[valueIndex];
+        }
     }
 
     public void free(long key) {
-        int index = findSlotOf(key);
-
-        if (index >= 0) {
-            usages[index]--;
-            if (usages[index] <= 0) {
-                keys[index] = FREE_OR_REMOVED;
-                values[index] = REMOVED;
+        if (!(isFree((int) key) || isRemoved((int) key))) {
+            usages[(int) key]--;
+            if (usages[(int) key] <= 0) {
+                int valueIndex = valueIndexesByKey[(int) key];
+                values[valueIndex] = REMOVED_VALUE;
+                valueIndexesByKey[(int) key] = lastRemovedKey;
+                lastRemovedKey = (((int) key) * (-1)) - 1;
                 size--;
             }
         }
@@ -87,16 +105,17 @@ public class PooledByteArrayMap {
 
 
     private void createInternalArrays(int capacity) {
-        keys = new long[capacity];
+        valueIndexesByKey = new int[capacity];
+        keysByValueIndex = new int[capacity];
         values = new byte[capacity][];
         usages = new int[capacity];
-        Arrays.fill(keys, FREE_OR_REMOVED);
+        Arrays.fill(valueIndexesByKey, FREE_KEY);
         Arrays.fill(values, null);
         Arrays.fill(usages, 0);
     }
 
     private void ensureCapacity(int desiredCapacity) {
-        int currentCapacity = keys.length;
+        int currentCapacity = valueIndexesByKey.length;
         if (desiredCapacity <= 0) {
             throw new IllegalStateException("Bad desired capacity, check overflow. Desired: " + desiredCapacity + ", current:" + currentCapacity);
         }
@@ -109,102 +128,66 @@ public class PooledByteArrayMap {
         probingStep = probingStepFor(newCapacity);
         newCapacity = correctCapacityToAvoidLoopingOverSameSlots(probingStep, newCapacity);
 
-        long[] oldKeys = keys;
+        int[] oldValueIndexesByKey = valueIndexesByKey;
         byte[][] oldValues = values;
         int[] oldUsages = usages;
 
         createInternalArrays(newCapacity);
 
-        for (int i = 0; i < oldKeys.length; i++) {
-            long oldKey = oldKeys[i];
-            if (oldKey != FREE_OR_REMOVED) {
-                byte[] oldValue = oldValues[i];
+        for (int key = 0; key < oldValueIndexesByKey.length; key++) {
+            int valueIndex = oldValueIndexesByKey[key];
+            if (valueIndex >= 0) { // free or removed
+                byte[] value = oldValues[valueIndex];
 
-                int index = findSlotFor(oldValue, hashCodeFromKey(oldKey));
+                int newValueIndex = findSlotFor(value, calculateHashCode(value));
 
-                keys[index] = oldKey;
-                values[index] = oldValue;
-                usages[index] = oldUsages[i];
+                valueIndexesByKey[key] = newValueIndex;
+                keysByValueIndex[newValueIndex] = key;
+                values[newValueIndex] = value;
+                usages[key] = oldUsages[key];
             }
         }
     }
 
-    private int findSlotFor(byte[] value, int valueHashCode) {
+    private int findSlotFor(byte[] value, int valueHashCode) { // TODO: should have separate version of this for rehash without removed and full && equals stuff
         int startingIndex = valueHashCode % values.length;
-        int firstRemoved = -1;
 
         int i = startingIndex;
         do {
-            if (isFree(i)) {
-                return firstRemoved != -1 ? firstRemoved : i;
+            if (values[i] == null || values[i] == REMOVED_VALUE) {
+                return i;
             }
-            if (isFull(i) && Arrays.equals(value, values[i])) {
+            if (values[i] != null && values[i] != REMOVED_VALUE && Arrays.equals(value, values[i])) {
                 return -i - 1; // encode existing value as negative number, -1 is necessary because 0 is valid index
-            }
-            if (firstRemoved == -1 && isRemoved(i)) {
-                firstRemoved = i;
             }
             i = incrementIndex(i);
         }
         while (i != startingIndex);
-
-        if (firstRemoved != -1) {
-            return firstRemoved;
-        }
 
         throw new IllegalStateException("linear probing should always succeed given enough capacity!");
     }
 
     private int incrementIndex(int index) {
         index += probingStep;
-        return index >= keys.length ? index - keys.length : index;
+        return index >= valueIndexesByKey.length ? index - valueIndexesByKey.length : index;
     }
 
-    private long getAndIncrementUniquifier() {
-        if (keyUniquefier >= Integer.MAX_VALUE) {
+    private int getAndIncrementUniquifier() {
+        if (keyGenerator >= Integer.MAX_VALUE - 1) {
             throw new IllegalArgumentException("Too many objects submitted for pooling - cannot guarantee operation");
         }
-        return keyUniquefier++;
+        return keyGenerator++;
     }
 
     private boolean isFree(int index) {
-        return keys[index] == FREE_OR_REMOVED && values[index] != REMOVED;
+        return valueIndexesByKey[index] == FREE_KEY;
     }
 
     private boolean isRemoved(int index) {
-        return keys[index] == FREE_OR_REMOVED && values[index] == REMOVED;
-    }
-
-    private boolean isFull(int index) {
-        return keys[index] != FREE_OR_REMOVED;
-    }
-
-    private int findSlotOf(long key) {
-        int valueHashCode = hashCodeFromKey(key);
-        int startingIndex = valueHashCode % values.length;
-
-        int i = startingIndex;
-        do {
-            if (isFree(i)) {
-                return -1;
-            }
-            if (isFull(i) && key == keys[i]) {
-                return i;
-            }
-            i = incrementIndex(i);
-        }
-        while (i != startingIndex);
-
-        return -1;
-    }
-
-    private static int hashCodeFromKey(long key) {
-        return (int) (key & HASHCODE_MASK);
+        return valueIndexesByKey[index] < 0 && valueIndexesByKey[index] != FREE_KEY;
     }
 
     private static int calculateHashCode(byte[] value) {
-//        return ((int) hashFunction.hashBytes(value)) & HASHCODE_MASK;
-
         int hashCode = Arrays.hashCode(value);
         hashCode = hashCode ^ (hashCode >>> 16);
         return hashCode & HASHCODE_MASK;
@@ -226,8 +209,8 @@ public class PooledByteArrayMap {
             return currentCapacity * 2;
         }
         // cap at max value
-        if (currentCapacity > Integer.MAX_VALUE - CAPACITY_INCREMENT) {
-            return Integer.MAX_VALUE;
+        if (currentCapacity > Integer.MAX_VALUE - 1 - CAPACITY_INCREMENT) {
+            return Integer.MAX_VALUE - 1;
         }
         // round up until whole increment of a chunk
         int mod = currentCapacity % CAPACITY_INCREMENT;
