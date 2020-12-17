@@ -16,7 +16,7 @@ class PooledByteArrayMapTest {
 
 
     /**
-     * {@link PooledByteArrayMap#get(long)}
+     * {@link PooledByteArrayMap#get(int)}
      */
     
     @Test
@@ -27,7 +27,7 @@ class PooledByteArrayMapTest {
 
     @Test
     void getOnEmptyMapReturnsNull() {
-        long key = poolUnderTest.put(new byte[] {1, 1, 1});
+        int key = poolUnderTest.put(new byte[] {1, 1, 1});
         poolUnderTest.free(key);
 
         assertThat(getForAssertion(key)).isNull();
@@ -37,7 +37,7 @@ class PooledByteArrayMapTest {
     @Test
     void getOnFullMapReturnsNull() {
         PooledByteArrayMap poolUnderTest = new PooledByteArrayMap(1);
-        long key = poolUnderTest.put(new byte[] {1, 1, 1});
+        int key = poolUnderTest.put(new byte[] {1, 1, 1});
 
         assertThat(key).isNotEqualTo(1);
         assertThat(getForAssertion(1)).isNull();
@@ -50,7 +50,7 @@ class PooledByteArrayMapTest {
     
     @Test
     void shouldPutValue() {
-        long key = poolUnderTest.put(new byte[] {1, 1, 1});
+        int key = poolUnderTest.put(new byte[] {1, 1, 1});
 
         assertThat(getForAssertion(key)).isEqualTo(new byte[] {1, 1, 1});
         assertThat(poolUnderTest.size()).isEqualTo(1);
@@ -58,8 +58,8 @@ class PooledByteArrayMapTest {
 
     @Test
     void putSameValueReturnsSameKey() {
-        long key1 = poolUnderTest.put(new byte[] {1, 1, 1});
-        long key2 = poolUnderTest.put(new byte[] {1, 1, 1});
+        int key1 = poolUnderTest.put(new byte[] {1, 1, 1});
+        int key2 = poolUnderTest.put(new byte[] {1, 1, 1});
 
         assertThat(key1).isEqualTo(key2);
         assertThat(poolUnderTest.size()).isEqualTo(1);
@@ -71,8 +71,8 @@ class PooledByteArrayMapTest {
         byte[] arr2 = {0, 31}; // 31* (31 + 0) + 31
         assertThat(Arrays.hashCode(arr1)).isEqualTo(Arrays.hashCode(arr2));
 
-        long key1 = poolUnderTest.put(arr1);
-        long key2 = poolUnderTest.put(arr2);
+        int key1 = poolUnderTest.put(arr1);
+        int key2 = poolUnderTest.put(arr2);
 
         assertThat(key1).isNotEqualTo(key2);
         assertThat(poolUnderTest.size()).isEqualTo(2);
@@ -129,7 +129,7 @@ class PooledByteArrayMapTest {
         for (int i = 0; i < INITIAL_CAPACITY - 1; i++) {
             poolUnderTest.put(new byte[] {(byte) i});
         }
-        long key = poolUnderTest.put(new byte[] {(byte) INITIAL_CAPACITY});
+        int key = poolUnderTest.put(new byte[] {(byte) INITIAL_CAPACITY});
         poolUnderTest.free(key);
         byte[] array = {(byte) INITIAL_CAPACITY + 1};
 
@@ -159,7 +159,7 @@ class PooledByteArrayMapTest {
 
 
     /**
-     * {@link PooledByteArrayMap#free(long)}
+     * {@link PooledByteArrayMap#free(int)}
      */
 
     @Test
@@ -171,7 +171,7 @@ class PooledByteArrayMapTest {
 
     @Test
     void removeOnEmptyMapHasNoEffect() {
-        long key = poolUnderTest.put(new byte[] {2, 3, 4});
+        int key = poolUnderTest.put(new byte[] {2, 3, 4});
         poolUnderTest.free(key);
         assertThat(poolUnderTest.size()).isEqualTo(0);
 
@@ -182,8 +182,8 @@ class PooledByteArrayMapTest {
 
     @Test
     void singleRemoveOfReusedEntryDoesNotRemoveIt() {
-        long key1 = poolUnderTest.put(new byte[] {2, 3, 4});
-        long key2 = poolUnderTest.put(new byte[] {2, 3, 4});
+        int key1 = poolUnderTest.put(new byte[] {2, 3, 4});
+        int key2 = poolUnderTest.put(new byte[] {2, 3, 4});
         assertThat(poolUnderTest.size()).isEqualTo(1);
         assertThat(key1).isEqualTo(key2);
 
@@ -194,8 +194,8 @@ class PooledByteArrayMapTest {
 
     @Test
     void removeRemovesEntryIfCalledSameNumberOfTimesAsPut() {
-        long key1 = poolUnderTest.put(new byte[] {2, 3, 4});
-        long key2 = poolUnderTest.put(new byte[] {2, 3, 4});
+        int key1 = poolUnderTest.put(new byte[] {2, 3, 4});
+        int key2 = poolUnderTest.put(new byte[] {2, 3, 4});
         assertThat(poolUnderTest.size()).isEqualTo(1);
         assertThat(key1).isEqualTo(key2);
 
@@ -212,8 +212,8 @@ class PooledByteArrayMapTest {
         byte[] arr2 = {0, 31}; // 31* (31 + 0) + 31
         assertThat(Arrays.hashCode(arr1)).isEqualTo(Arrays.hashCode(arr2));
 
-        long key1 = poolUnderTest.put(arr1);
-        long key2 = poolUnderTest.put(arr2);
+        int key1 = poolUnderTest.put(arr1);
+        int key2 = poolUnderTest.put(arr2);
         assertThat(poolUnderTest.size()).isEqualTo(2);
         assertThat(key1).isNotEqualTo(key2);
 
@@ -256,7 +256,7 @@ class PooledByteArrayMapTest {
     }
 
     @SuppressWarnings("byte.array.weakening")
-    private byte [] getForAssertion(long key) {
+    private byte [] getForAssertion(int key) {
         return poolUnderTest.get(key);
     }
 }

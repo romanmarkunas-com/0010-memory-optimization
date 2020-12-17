@@ -11,15 +11,15 @@ import java.nio.charset.StandardCharsets;
 public final class Order {
 
     private final long id;
-    private final long user;
+    private final int user;
     private final int articleNr;
     private final int count;
     private final int pricePence;
-    private final long addressNumber;
-    private final long addressStreet;
-    private final long addressCity;
-    private final long addressRegion;
-    private final long addressPostCode;
+    private final int addressNumber;
+    private final int addressStreet;
+    private final int addressCity;
+    private final int addressRegion;
+    private final int addressPostCode;
 
 
     @JsonCreator
@@ -102,12 +102,12 @@ public final class Order {
         return restoreString(addressPostCode, byteArrayPool);
     }
 
-    private long internString(String str, PooledByteArrayMap byteArrayPool) {
+    private int internString(String str, PooledByteArrayMap byteArrayPool) {
         return byteArrayPool.put(str.getBytes(StandardCharsets.US_ASCII));
     }
 
     @SuppressWarnings("byte.array.weakening")
-    private String restoreString(long key, PooledByteArrayMap byteArrayPool) {
+    private String restoreString(int key, PooledByteArrayMap byteArrayPool) {
         return new String(byteArrayPool.get(key), StandardCharsets.US_ASCII);
     }
 }

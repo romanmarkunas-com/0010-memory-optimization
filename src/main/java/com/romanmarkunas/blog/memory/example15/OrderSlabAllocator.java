@@ -67,7 +67,7 @@ public class OrderSlabAllocator {
         private static final int LEFT_OUTSIDE_SLAB = -1;
         private static final int RIGHT_OUTSIDE_SLAB = MAX_OBJECTS_IN_SLAB;
 
-        private final OrderView view;
+        private final OrderView view; // TODO: pass in view to not store it on each slab
         private final ByteBuffer buffer;
 
         private int firstFreeSpacePosition;

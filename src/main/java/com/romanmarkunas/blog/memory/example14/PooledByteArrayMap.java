@@ -41,7 +41,7 @@ public class PooledByteArrayMap {
     }
 
 
-    public long put(byte[] value) {
+    public int put(byte[] value) {
         // TODO: fail on null cause it's a special value of FREE cell
         int valueHashCode = calculateHashCode(value);
 
@@ -76,24 +76,24 @@ public class PooledByteArrayMap {
         return freeKey;
     }
 
-    public byte @ImmutableByteArray [] get(long key) {
-        if (isFree((int) key) || isRemoved((int) key)) {
+    public byte @ImmutableByteArray [] get(int key) {
+        if (isFree(key) || isRemoved(key)) {
             return null;
         }
         else {
-            int valueIndex = valueIndexesByKey[(int) key];
+            int valueIndex = valueIndexesByKey[key];
             return values[valueIndex];
         }
     }
 
-    public void free(long key) {
-        if (!(isFree((int) key) || isRemoved((int) key))) {
-            usages[(int) key]--;
-            if (usages[(int) key] <= 0) {
-                int valueIndex = valueIndexesByKey[(int) key];
+    public void free(int key) {
+        if (!(isFree(key) || isRemoved(key))) {
+            usages[key]--;
+            if (usages[key] <= 0) {
+                int valueIndex = valueIndexesByKey[key];
                 values[valueIndex] = REMOVED_VALUE;
-                valueIndexesByKey[(int) key] = lastRemovedKey;
-                lastRemovedKey = (((int) key) * (-1)) - 1;
+                valueIndexesByKey[key] = lastRemovedKey;
+                lastRemovedKey = -key - 1;
                 size--;
             }
         }
