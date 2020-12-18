@@ -59,7 +59,7 @@ public class PooledByteArrayMap {
             return key;
         }
         else {
-            int key = lastRemovedKey == NO_REMOVED_KEY ? getAndIncrementUniquifier() : getLastRemovedKey();
+            int key = lastRemovedKey == NO_REMOVED_KEY ? getAndIncrementNewKey() : getLastRemovedKey();
 
             arrays.setValueIndexByKey(key, index);
             arrays.setKeyByValueIndex(index, key);
@@ -165,8 +165,8 @@ public class PooledByteArrayMap {
         return index >= arrays.capacity ? index - arrays.capacity : index;
     }
 
-    private int getAndIncrementUniquifier() {
-        if (keyGenerator >= Integer.MAX_VALUE - 1) {
+    private int getAndIncrementNewKey() {
+        if (keyGenerator >= Integer.MAX_VALUE - 2) {
             throw new IllegalArgumentException("Too many objects submitted for pooling - cannot guarantee operation");
         }
         return keyGenerator++;
@@ -202,8 +202,8 @@ public class PooledByteArrayMap {
             return currentCapacity * 2;
         }
         // cap at max value
-        if (currentCapacity > Integer.MAX_VALUE - 1 - CAPACITY_INCREMENT) {
-            return Integer.MAX_VALUE - 1;
+        if (currentCapacity > Integer.MAX_VALUE - 2 - CAPACITY_INCREMENT) {
+            return Integer.MAX_VALUE - 2;
         }
         // round up until whole increment of a chunk
         int mod = currentCapacity % CAPACITY_INCREMENT;
@@ -216,7 +216,7 @@ public class PooledByteArrayMap {
 
     private static int correctCapacityToAvoidLoopingOverSameSlots(final int probingStep, final int capacity) {
         if (probingStep > 1 && capacity % probingStep == 0) {
-            return capacity + 1;
+            return capacity + 1; // this cannot fail on full capacity because Integer.MAX - 2 is not divisible by 99991
         }
         return capacity;
     }
