@@ -34,6 +34,7 @@ dependencies {
     implementation 'org.agrona:agrona:1.6.0'
     implementation project(':immutable-byte-array-checker') // normally annotations and checker would ship separately
     implementation 'net.openhft:zero-allocation-hashing:0.12'
+    implementation 'net.sf.trove4j:trove4j:3.0.3'
 
     checkerFramework "org.checkerframework:checker:${vCheckersFramework}"
     checkerFramework project(':immutable-byte-array-checker')

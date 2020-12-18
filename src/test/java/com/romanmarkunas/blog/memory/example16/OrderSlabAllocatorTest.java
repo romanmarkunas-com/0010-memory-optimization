@@ -1,5 +1,6 @@
 package com.romanmarkunas.blog.memory.example16;
 
+import com.romanmarkunas.blog.memory.example15.PooledByteArrayMap;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;

@@ -1,6 +1,6 @@
 package com.romanmarkunas.blog.memory.example16;
 
-import com.romanmarkunas.blog.memory.example14.PooledByteArrayMap;
+import com.romanmarkunas.blog.memory.example15.PooledByteArrayMap;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;

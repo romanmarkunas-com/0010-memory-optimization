@@ -25,10 +25,7 @@ public class PooledByteArrayMap {
 //    private final LongHashFunction hashFunction = LongHashFunction.murmur_3();
 
     private int keyGenerator = 0;
-    private int[] valueIndexesByKey; // index = key, cell = 1) positive until MAX - 2: value index; 2) negative: free or removed; 2a) negative MIN: free init value; 2b) negative not min: negate - 1 gives next free key slot for reuse
-    private int[] keysByValueIndex; // index = value slot, cell = key
-    private byte[][] values;
-    private int[] usages;
+    private PagedArrays arrays;
     private int size = 0; // max size should be MAX - 2
     private int probingStep;
     private int lastRemovedKey = NO_REMOVED_KEY;
@@ -43,7 +40,7 @@ public class PooledByteArrayMap {
 
     public int put(byte[] value) {
         if (value == FREE_VALUE) {
-            throw new IllegalArgumentException("Cannot store null");
+            throw new IllegalArgumentException("Cannot put null into pool");
         }
 
         int valueHashCode = calculateHashCode(value);
@@ -54,20 +51,20 @@ public class PooledByteArrayMap {
 
         if (index < 0) {
             int indexOfExistingItem = -(index + 1);
-            int key = keysByValueIndex[indexOfExistingItem];
-            if (usages[key] >= Integer.MAX_VALUE) {
+            int key = arrays.getKeyByValueIndex(indexOfExistingItem);
+            if (arrays.getUsagesByKey(key) >= Integer.MAX_VALUE) {
                 throw new IllegalStateException("Too many reuses of same byte[] - " + Arrays.toString(value));
             }
-            usages[key]++;
+            arrays.incrementUsagesByKey(key);
             return key;
         }
         else {
             int key = lastRemovedKey == NO_REMOVED_KEY ? getAndIncrementUniquifier() : getLastRemovedKey();
 
-            valueIndexesByKey[key] = index;
-            keysByValueIndex[index] = key;
-            values[index] = value;
-            usages[key] = 1;
+            arrays.setValueIndexByKey(key, index);
+            arrays.setKeyByValueIndex(index, key);
+            arrays.setValueByValueIndex(index, value);
+            arrays.setUsagesByKey(key, 1);
             size++;
             return key;
         }
@@ -75,7 +72,7 @@ public class PooledByteArrayMap {
 
     private int getLastRemovedKey() {
         int freeKey = -lastRemovedKey - 1;
-        lastRemovedKey = valueIndexesByKey[freeKey];
+        lastRemovedKey = arrays.getValueIndexByKey(freeKey);
         return freeKey;
     }
 
@@ -84,18 +81,18 @@ public class PooledByteArrayMap {
             return null;
         }
         else {
-            int valueIndex = valueIndexesByKey[key];
-            return values[valueIndex];
+            int valueIndex = arrays.getValueIndexByKey(key);
+            return arrays.getValueByValueIndex(valueIndex);
         }
     }
 
     public void free(int key) {
         if (!(isFree(key) || isRemoved(key))) {
-            usages[key]--;
-            if (usages[key] <= 0) {
-                int valueIndex = valueIndexesByKey[key];
-                values[valueIndex] = REMOVED_VALUE;
-                valueIndexesByKey[key] = lastRemovedKey;
+            arrays.decrementUsagesByKey(key);
+            if (arrays.getUsagesByKey(key) <= 0) {
+                int valueIndex = arrays.getValueIndexByKey(key);
+                arrays.setValueByValueIndex(valueIndex, REMOVED_VALUE);
+                arrays.setValueIndexByKey(key, lastRemovedKey);
                 lastRemovedKey = -key - 1;
                 size--;
             }
@@ -108,17 +105,11 @@ public class PooledByteArrayMap {
 
 
     private void createInternalArrays(int capacity) {
-        valueIndexesByKey = new int[capacity];
-        keysByValueIndex = new int[capacity];
-        values = new byte[capacity][];
-        usages = new int[capacity];
-        Arrays.fill(valueIndexesByKey, FREE_KEY);
-        Arrays.fill(values, null);
-        Arrays.fill(usages, 0);
+        arrays = new PagedArrays(capacity);
     }
 
     private void ensureCapacity(int desiredCapacity) {
-        int currentCapacity = valueIndexesByKey.length;
+        int currentCapacity = arrays.capacity;
         if (desiredCapacity <= 0) {
             throw new IllegalStateException("Bad desired capacity, check overflow. Desired: " + desiredCapacity + ", current:" + currentCapacity);
         }
@@ -131,36 +122,35 @@ public class PooledByteArrayMap {
         probingStep = probingStepFor(newCapacity);
         newCapacity = correctCapacityToAvoidLoopingOverSameSlots(probingStep, newCapacity);
 
-        int[] oldValueIndexesByKey = valueIndexesByKey;
-        byte[][] oldValues = values;
-        int[] oldUsages = usages;
+        PagedArrays oldArrays = arrays;
 
         createInternalArrays(newCapacity);
 
-        for (int key = 0; key < oldValueIndexesByKey.length; key++) {
-            int valueIndex = oldValueIndexesByKey[key];
-            if (valueIndex >= 0) { // free or removed
-                byte[] value = oldValues[valueIndex];
+        for (int key = 0; key < oldArrays.capacity; key++) {
+            int valueIndex = oldArrays.getValueIndexByKey(key);
+            if (valueIndex >= 0) { // not free or removed
+                byte[] value = oldArrays.getValueByValueIndex(valueIndex);
 
                 int newValueIndex = findSlotFor(value, calculateHashCode(value));
 
-                valueIndexesByKey[key] = newValueIndex;
-                keysByValueIndex[newValueIndex] = key;
-                values[newValueIndex] = value;
-                usages[key] = oldUsages[key];
+                arrays.setValueIndexByKey(key, newValueIndex);
+                arrays.setKeyByValueIndex(newValueIndex, key);
+                arrays.setValueByValueIndex(newValueIndex, value);
+                arrays.setUsagesByKey(key, oldArrays.getUsagesByKey(key));
             }
         }
     }
 
     private int findSlotFor(byte[] value, int valueHashCode) { // TODO: should have separate version of this for rehash without removed and full && equals stuff
-        int startingIndex = valueHashCode % values.length;
+        int startingIndex = valueHashCode % arrays.capacity;
 
         int i = startingIndex;
         do {
-            if (values[i] == null || values[i] == REMOVED_VALUE) {
+            byte[] existingValue = arrays.getValueByValueIndex(i);
+            if (existingValue == null || existingValue == REMOVED_VALUE) {
                 return i;
             }
-            if (values[i] != null && values[i] != REMOVED_VALUE && Arrays.equals(value, values[i])) {
+            if (Arrays.equals(existingValue, value)) {
                 return -i - 1; // encode existing value as negative number, -1 is necessary because 0 is valid index
             }
             i = incrementIndex(i);
@@ -172,7 +162,7 @@ public class PooledByteArrayMap {
 
     private int incrementIndex(int index) {
         index += probingStep;
-        return index >= valueIndexesByKey.length ? index - valueIndexesByKey.length : index;
+        return index >= arrays.capacity ? index - arrays.capacity : index;
     }
 
     private int getAndIncrementUniquifier() {
@@ -183,11 +173,11 @@ public class PooledByteArrayMap {
     }
 
     private boolean isFree(int index) {
-        return valueIndexesByKey[index] == FREE_KEY;
+        return arrays.getValueIndexByKey(index) == FREE_KEY;
     }
 
     private boolean isRemoved(int index) {
-        return valueIndexesByKey[index] < 0 && valueIndexesByKey[index] != FREE_KEY;
+        return arrays.getValueIndexByKey(index) < 0 && arrays.getValueIndexByKey(index) != FREE_KEY;
     }
 
     private static int calculateHashCode(byte[] value) {
@@ -229,5 +219,107 @@ public class PooledByteArrayMap {
             return capacity + 1;
         }
         return capacity;
+    }
+
+    private static final class PagedArrays {
+
+        private static final int PAGE_SIZE = 8192;
+        private final int[] pageSizes;
+        private final Page[] pages;
+        private final int capacity;
+
+
+        PagedArrays(int capacity) {
+            this.capacity = capacity;
+            int fullPages = capacity / PAGE_SIZE;
+            int partialPageSize = capacity % PAGE_SIZE;
+            int partialPages = partialPageSize == 0 ? 0 : 1;
+
+            pages = new Page[fullPages + partialPages];
+            pageSizes = new int[fullPages + partialPages];
+
+            for (int i = 0; i < fullPages; i++) {
+                pageSizes[i] = PAGE_SIZE;
+            }
+            if (partialPages == 1) {
+                pageSizes[fullPages] = partialPageSize;
+            }
+        }
+
+
+        int getValueIndexByKey(int key) {
+            return pageForIndex(key).valueIndexesByKey[indexWithinPage(key)];
+        }
+
+        public void setValueIndexByKey(int key, int valueIndex) {
+            pageForIndex(key).valueIndexesByKey[indexWithinPage(key)] = valueIndex;
+        }
+
+        int getKeyByValueIndex(int valueIndex) {
+            return pageForIndex(valueIndex).keysByValueIndex[indexWithinPage(valueIndex)];
+        }
+
+        public void setKeyByValueIndex(int valueIndex, int key) {
+            pageForIndex(valueIndex).keysByValueIndex[indexWithinPage(valueIndex)] = key;
+        }
+
+        byte[] getValueByValueIndex(int valueIndex) {
+            return pageForIndex(valueIndex).values[indexWithinPage(valueIndex)];
+        }
+
+        public void setValueByValueIndex(int valueIndex, byte[] value) {
+            pageForIndex(valueIndex).values[indexWithinPage(valueIndex)] = value;
+        }
+
+        public int getUsagesByKey(int key) {
+            return pageForIndex(key).usages[indexWithinPage(key)];
+        }
+
+        public void setUsagesByKey(int key, int usages) {
+            pageForIndex(key).usages[indexWithinPage(key)] = usages;
+        }
+
+        public void incrementUsagesByKey(int key) {
+            pageForIndex(key).usages[indexWithinPage(key)]++;
+        }
+
+        public void decrementUsagesByKey(int key) {
+            pageForIndex(key).usages[indexWithinPage(key)]--;
+        }
+
+
+        private Page pageForIndex(int index) {
+            int pageIndex = index / PAGE_SIZE;
+            if (pages[pageIndex] == null) {
+                pages[pageIndex] = new Page(pageSizes[pageIndex]);
+            }
+            return pages[pageIndex];
+        }
+
+        private int indexWithinPage(int index) {
+            return index % PAGE_SIZE;
+        }
+
+
+        private static final class Page {
+            // index = key, cell =
+            //              1) positive until MAX - 2: value index;
+            //              2) negative: free or removed;
+            //              2a) negative MIN: free init value;
+            //              2b) negative not min: negate - 1 gives next free key slot for reuse (negative MIN + 1 means its a last free slot)
+            private final int[] valueIndexesByKey;
+            // index = value slot, cell = key
+            private final int[] keysByValueIndex;
+            private final byte[][] values;
+            private final int[] usages;
+
+            Page(int capacity) {
+                valueIndexesByKey = new int[capacity];
+                keysByValueIndex = new int[capacity];
+                values = new byte[capacity][];
+                usages = new int[capacity];
+                Arrays.fill(valueIndexesByKey, FREE_KEY);
+            }
+        }
     }
 }

@@ -3,9 +3,9 @@ package com.romanmarkunas.blog.memory.example16;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
-import com.romanmarkunas.blog.memory.example14.PooledByteArrayMap;
-import org.agrona.collections.Long2LongHashMap;
-import org.agrona.collections.Long2ObjectHashMap;
+import com.romanmarkunas.blog.memory.example15.PooledByteArrayMap;
+import gnu.trove.map.hash.TLongIntHashMap;
+import org.agrona.collections.Int2ObjectHashMap;
 
 import java.io.IOException;
 import java.util.Scanner;
@@ -21,8 +21,8 @@ public class SlabAllocatorOrderStoreMain {
         PooledByteArrayMap pool = new PooledByteArrayMap(80_000);
         OrderSlabAllocator orderAllocator = new OrderSlabAllocator(pool);
 
-        Long2LongHashMap ordersById = new Long2LongHashMap(-1);
-        Long2ObjectHashMap<int[]> ordersByUser = new Long2ObjectHashMap<>();
+        TLongIntHashMap ordersById = new TLongIntHashMap(8, 0.99f, -1, -1);
+        Int2ObjectHashMap<int[]> ordersByUser = new Int2ObjectHashMap<>(8, 0.85f);
 
         try (Scanner scanner = new Scanner(System.in)) {
             while (true) {
@@ -47,7 +47,7 @@ public class SlabAllocatorOrderStoreMain {
                     ordersById.put(orderView.getId(), orderRef);
 
                     // cannot use IntArrayList as it has min capacity of 10
-                    long userPoolKey = orderView.getUserPoolKey();
+                    int userPoolKey = orderView.getUserPoolKey();
                     int[] orders = ordersByUser.get(userPoolKey);
                     if (orders == null) {
                         ordersByUser.put(userPoolKey, new int[] {orderRef});

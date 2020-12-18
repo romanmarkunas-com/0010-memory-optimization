@@ -228,9 +228,10 @@ class OrderStoreMainTest {
         process = runInSeparateJvm(
                 CustomStringPoolArrayCapacityOrderStoreMain.class,
                 "-Xmx64m",
+                "-XX:+UseSerialGC",
+                "-XX:NewRatio=5",
                 "-Xlog:gc*"
 //                "-Xmx64m",
-//                "-XX:+UseConcMarkSweepGC",
 //                "-XX:+HeapDumpOnOutOfMemoryError",
 //                "-XX:HeapDumpPath=dump15.hprof"
         );
@@ -243,13 +244,9 @@ class OrderStoreMainTest {
                 = new com.romanmarkunas.blog.memory.example11.OrderGenerator(addresses);
         process = runInSeparateJvm(
                 SlabAllocatorOrderStoreMain.class,
-                "-Xmx64m"
-//                "-Xmx64m",
-//                "-Xlog:gc*",
-//                "-XX:+UnlockDiagnosticVMOptions",
-//                "-XX:+UseConcMarkSweepGC",
-//                "-XX:+HeapDumpOnOutOfMemoryError",
-//                "-XX:HeapDumpPath=dump16.hprof"
+                "-Xmx64m",
+                "-XX:+UseSerialGC",
+                "-Xlog:gc*"
         );
         stuffOtherJvmUntilItDies(process, generator::next);
     }
