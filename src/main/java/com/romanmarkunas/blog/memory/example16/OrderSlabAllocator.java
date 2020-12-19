@@ -29,7 +29,8 @@ public class OrderSlabAllocator {
     }
 
     public OrderView get(int key) {
-        return slabs.get(slabIndex(key)).get(indexWithinSlab(key));
+        Slab slab = slabs.get(slabIndex(key));
+        return view.wrap(slab.buffer, slab.byteOffsetOf(indexWithinSlab(key)));
     }
 
     public void free(int key) {
@@ -53,7 +54,7 @@ public class OrderSlabAllocator {
             }
         }
 
-        slabs.add(new Slab(view));
+        slabs.add(new Slab());
 
         return slabs.size() - 1;
     }
@@ -67,14 +68,12 @@ public class OrderSlabAllocator {
         private static final int LEFT_OUTSIDE_SLAB = -1;
         private static final int RIGHT_OUTSIDE_SLAB = MAX_OBJECTS_IN_SLAB;
 
-        private final OrderView view; // TODO: pass in view to not store it on each slab
         private final ByteBuffer buffer;
 
         private int firstFreeSpacePosition;
 
 
-        private Slab(OrderView view) {
-            this.view = view;
+        private Slab() {
             buffer = ByteBuffer.allocate(SLAB_SIZE_BYTES);
             firstFreeSpacePosition = 0;
             setSizeOfFreeSpace(firstFreeSpacePosition, MAX_OBJECTS_IN_SLAB);
@@ -82,11 +81,7 @@ public class OrderSlabAllocator {
         }
 
 
-        public OrderView get(int index) {
-            return view.wrap(buffer, byteOffsetOf(index));
-        }
-
-        public int putIntoFirstFree() {
+        int putIntoFirstFree() {
             int allocatedPosition = this.firstFreeSpacePosition;
 
             int freeSpaceSize = geSizeOfFreeSpaceInObjects(firstFreeSpacePosition);
@@ -104,7 +99,7 @@ public class OrderSlabAllocator {
             return allocatedPosition;
         }
 
-        public void free(int index) {
+        void free(int index) {
             // find between which pair of free spaces new free slot will appear
             // for full slab, firstFreeSpacePosition == RIGHT_OUTSIDE_SLAB
             int left = LEFT_OUTSIDE_SLAB;
@@ -143,14 +138,14 @@ public class OrderSlabAllocator {
             }
         }
 
-        public boolean hasSpace() {
+        boolean hasSpace() {
             return firstFreeSpacePosition < MAX_OBJECTS_IN_SLAB;
         }
 
-
-        private int byteOffsetOf(int position) {
+        int byteOffsetOf(int position) {
             return position * OBJECT_SIZE_BYTES;
         }
+
 
         private int geSizeOfFreeSpaceInObjects(int positionOfFreeSpace) {
             return buffer.getInt(byteOffsetOf(positionOfFreeSpace));
