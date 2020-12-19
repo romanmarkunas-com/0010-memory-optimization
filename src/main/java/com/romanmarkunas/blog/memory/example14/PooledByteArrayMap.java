@@ -63,17 +63,11 @@ public class PooledByteArrayMap {
 
             valueIndexesByKey[key] = index;
             keysByValueIndex[index] = key;
-            values[index] = value;
+            values[index] = Arrays.copyOf(value, value.length);
             usages[key] = 1;
             size++;
             return key;
         }
-    }
-
-    private int getLastRemovedKey() {
-        int freeKey = -lastRemovedKey - 1;
-        lastRemovedKey = valueIndexesByKey[freeKey];
-        return freeKey;
     }
 
     public byte @ImmutableByteArray [] get(int key) {
@@ -103,6 +97,12 @@ public class PooledByteArrayMap {
         return size;
     }
 
+
+    private int getLastRemovedKey() {
+        int freeKey = -lastRemovedKey - 1;
+        lastRemovedKey = valueIndexesByKey[freeKey];
+        return freeKey;
+    }
 
     private void createInternalArrays(int capacity) {
         valueIndexesByKey = new int[capacity];
